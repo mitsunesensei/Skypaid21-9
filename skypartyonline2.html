@@ -4654,7 +4654,7 @@
             }
             
             // Load messages for this conversation
-            loadConversationMessages(conversationId);
+            await loadConversationMessages(conversationId);
             console.log('Loaded conversation messages');
         }
 
@@ -4738,7 +4738,7 @@
             return conversationDiv;
         }
 
-        function loadConversationMessages(conversationId) {
+        async function loadConversationMessages(conversationId) {
             const messagesArea = document.getElementById('dmMessagesArea');
             const conversation = conversations.find(conv => conv.id === conversationId);
             
@@ -4754,18 +4754,19 @@
             }
             
             messagesArea.innerHTML = '';
-            conversation.messages.forEach(message => {
-                const messageElement = createChatMessageElement(message);
+            for (const message of conversation.messages) {
+                const messageElement = await createChatMessageElement(message);
                 messagesArea.appendChild(messageElement);
-            });
+            }
             
             // Scroll to bottom
             messagesArea.scrollTop = messagesArea.scrollHeight;
         }
 
-        function createChatMessageElement(message) {
+        async function createChatMessageElement(message) {
             const messageDiv = document.createElement('div');
-            const isOwnMessage = message.sender === getCurrentUsername();
+            const currentUsername = await getCurrentUsername();
+            const isOwnMessage = message.sender === currentUsername;
             
             messageDiv.style.cssText = `
                 margin-bottom: 8px;
@@ -5039,7 +5040,7 @@
             
             // Clear input and refresh messages
             document.getElementById('dmMessageText').value = '';
-            loadConversationMessages(currentConversation.id);
+            await loadConversationMessages(currentConversation.id);
             
             // Refresh conversations list to update last message
             loadConversations();
