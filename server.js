@@ -1093,6 +1093,16 @@ async function createTables() {
             )
         `);
         
+        // Add currentCharacter column if it doesn't exist (migration)
+        try {
+            await client.query(`
+                ALTER TABLE users ADD COLUMN IF NOT EXISTS currentCharacter VARCHAR(50) DEFAULT 'kitty'
+            `);
+            console.log('✅ Added currentCharacter column to users table');
+        } catch (error) {
+            console.log('⚠️ currentCharacter column already exists or error:', error.message);
+        }
+        
         // Create user_data table for game data
         await client.query(`
             CREATE TABLE IF NOT EXISTS user_data (
