@@ -1243,7 +1243,7 @@
                             </div>
                         </div>
                         
-                        <div class="avatar-box" onclick="showSection('characters')" style="cursor: pointer;" title="Click to change character">
+                        <div class="avatar-box" id="bigProfileAvatar" onclick="showSection('characters')" style="cursor: pointer;" title="Click to change character">
                             👤
                         </div>
                         
@@ -2177,9 +2177,27 @@
                 profileSidebarAvatar.textContent = avatarEmoji;
             }
             
-            // 4. Any other avatar displays that might exist
+            // 4. Big profile avatar (the large avatar in profile section)
+            const bigProfileAvatar = document.getElementById('bigProfileAvatar');
+            if (bigProfileAvatar) {
+                bigProfileAvatar.textContent = avatarEmoji;
+            }
+            
+            // 5. Profile section avatar (alternative ID)
+            const profileSectionAvatar = document.getElementById('profileSectionAvatar');
+            if (profileSectionAvatar) {
+                profileSectionAvatar.textContent = avatarEmoji;
+            }
+            
+            // 6. Any other avatar displays that might exist
             const allAvatarElements = document.querySelectorAll('[data-avatar="current-user"]');
             allAvatarElements.forEach(element => {
+                element.textContent = avatarEmoji;
+            });
+            
+            // 7. Update any profile-related avatar elements by class
+            const profileAvatarElements = document.querySelectorAll('.profile-avatar, .user-avatar, .main-avatar, .avatar-box');
+            profileAvatarElements.forEach(element => {
                 element.textContent = avatarEmoji;
             });
             
