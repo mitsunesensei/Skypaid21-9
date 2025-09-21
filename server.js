@@ -193,16 +193,27 @@ app.get('/api/users/search', async (req, res) => {
         // Search PostgreSQL database for users
         const client = await pool.connect();
         try {
-            const result = await client.query(
-                'SELECT id, username, email, currentCharacter, created_at FROM users WHERE username ILIKE $1 ORDER BY username',
-                [`%${query}%`]
-            );
+            // First try with currentCharacter column
+            let result;
+            try {
+                result = await client.query(
+                    'SELECT id, username, email, currentCharacter, created_at FROM users WHERE username ILIKE $1 ORDER BY username',
+                    [`%${query}%`]
+                );
+            } catch (error) {
+                // If currentCharacter column doesn't exist, fall back to basic query
+                console.log('⚠️ currentCharacter column not found, using fallback query');
+                result = await client.query(
+                    'SELECT id, username, email, created_at FROM users WHERE username ILIKE $1 ORDER BY username',
+                    [`%${query}%`]
+                );
+            }
             
             const users = result.rows.map(row => ({
                 id: row.id,
                 username: row.username,
                 email: row.email,
-                currentCharacter: row.currentcharacter,
+                currentCharacter: row.currentcharacter || 'kitty', // Default to kitty if column doesn't exist
                 createdAt: row.created_at
             }));
             
@@ -1014,11 +1025,15 @@ app.put('/api/user/:userId/data', async (req, res) => {
         
         // Update currentCharacter in users table if provided
         if (data.currentCharacter) {
-            await client.query(
-                'UPDATE users SET currentCharacter = $1 WHERE id = $2',
-                [data.currentCharacter, userId]
-            );
-            console.log(`✅ Updated currentCharacter to ${data.currentCharacter} for user ${userId}`);
+            try {
+                await client.query(
+                    'UPDATE users SET currentCharacter = $1 WHERE id = $2',
+                    [data.currentCharacter, userId]
+                );
+                console.log(`✅ Updated currentCharacter to ${data.currentCharacter} for user ${userId}`);
+            } catch (error) {
+                console.log('⚠️ currentCharacter column not found, skipping character update:', error.message);
+            }
         }
         
         // Update or insert each data type in user_data table
