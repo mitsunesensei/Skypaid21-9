@@ -2319,7 +2319,7 @@
             try {
                 console.log('🔍 Getting user ID for username:', username);
                 
-                const response = await fetch(`${RAILWAY_API_URL}/api/users/search?q=${encodeURIComponent(username)}`, {
+                const response = await fetch(`${RAILWAY_API_URL}/api/users/search?query=${encodeURIComponent(username)}`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json'
@@ -3982,7 +3982,9 @@
                     
                     let filteredUsers = [];
                     if (result.success && result.users && Array.isArray(result.users)) {
-                        filteredUsers = result.users.map(user => user.username);
+                        // Remove duplicates by using Set
+                        const uniqueUsernames = [...new Set(result.users.map(user => user.username))];
+                        filteredUsers = uniqueUsernames;
                         console.log('👥 Found Railway users:', filteredUsers);
                     } else {
                         console.log('❌ Railway search returned no users or invalid format:', result);
@@ -5312,7 +5314,20 @@
 
         async function getOtherUserInConversation(conversation) {
             const currentUsername = await getCurrentUsername();
-            return conversation.participants.find(user => user !== currentUsername);
+            console.log('🔍 getOtherUserInConversation - Current username:', currentUsername);
+            console.log('🔍 getOtherUserInConversation - Conversation:', conversation);
+            console.log('🔍 getOtherUserInConversation - Participants:', conversation.participants);
+            
+            if (!conversation.participants || !Array.isArray(conversation.participants)) {
+                console.error('❌ Invalid participants array:', conversation.participants);
+                return null;
+            }
+            
+            // Handle both Railway API format and local format
+            const otherUser = conversation.participants.find(user => user !== currentUsername);
+            console.log('🔍 getOtherUserInConversation - Other user:', otherUser);
+            
+            return otherUser;
         }
 
         function createConversationId(user1, user2) {
