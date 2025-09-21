@@ -4592,7 +4592,7 @@
             currentConversation = null;
         }
 
-        function showChatInterface(conversationId) {
+        async function showChatInterface(conversationId) {
             console.log('showChatInterface called with:', conversationId);
             
             // Hide welcome screen and show chat interface
@@ -4637,14 +4637,14 @@
             markConversationAsRead(conversationId);
             
             // Update chat header
-            const otherUser = getOtherUserInConversation(conversation);
+            const otherUser = await getOtherUserInConversation(conversation);
             console.log('Other user:', otherUser);
             
             const chatAvatar = document.getElementById('dmChatAvatar');
             const chatName = document.getElementById('dmChatName');
             
             if (chatAvatar) {
-                chatAvatar.textContent = getUserAvatar(otherUser);
+                chatAvatar.textContent = await getUserAvatar(otherUser);
                 console.log('Updated chat avatar');
             }
             
@@ -4723,7 +4723,7 @@
             `;
             
             conversationDiv.onclick = () => {
-                showChatInterface(conversation.id);
+                showChatInterface(conversation.id).catch(console.error);
             };
             
             // Add hover effect
@@ -4991,7 +4991,7 @@
             setTimeout(() => {
                 console.log('Attempting to show chat interface for:', conversationId);
                 console.log('Available conversations:', conversations.map(c => c.id));
-                showChatInterface(conversationId);
+                showChatInterface(conversationId).catch(console.error);
             }, 100);
         }
 
@@ -5018,7 +5018,7 @@
             const message = {
                 id: Date.now().toString(),
                 sender: currentUsername,
-                recipient: getOtherUserInConversation(currentConversation),
+                recipient: await getOtherUserInConversation(currentConversation),
                 content: messageText,
                 timestamp: new Date().toISOString(),
                 read: false
@@ -5128,8 +5128,8 @@
             return null;
         }
 
-        function getOtherUserInConversation(conversation) {
-            const currentUsername = getCurrentUsername();
+        async function getOtherUserInConversation(conversation) {
+            const currentUsername = await getCurrentUsername();
             return conversation.participants.find(user => user !== currentUsername);
         }
 
