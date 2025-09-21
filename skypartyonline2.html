@@ -1950,9 +1950,9 @@
                     </div>
                     
                     <!-- Chat Interface (Hidden by default) -->
-                    <div id="dmChatInterface" style="flex: 1; display: none; flex-direction: column;">
+                    <div id="dmChatInterface" style="flex: 1; display: none; flex-direction: column; height: 100%; min-height: 0;">
                         <!-- Chat Header -->
-                        <div id="dmChatHeader" style="padding: 12px; border-bottom: 1px solid #d0d0d0; background: white; display: flex; align-items: center; gap: 8px;">
+                        <div id="dmChatHeader" style="padding: 12px; border-bottom: 1px solid #d0d0d0; background: white; display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
                             <span id="dmChatAvatar" style="font-size: 24px;">👤</span>
                             <div style="flex: 1;">
                                 <div id="dmChatName" style="font-weight: bold; color: #1f4e79; font-size: 12px;"></div>
@@ -1962,12 +1962,12 @@
                         </div>
                         
                         <!-- Messages Area -->
-                        <div id="dmMessagesArea" style="flex: 1; padding: 12px; overflow-y: auto; background: #f8f8f8;">
+                        <div id="dmMessagesArea" style="flex: 1; padding: 12px; overflow-y: auto; background: #f8f8f8; min-height: 0; max-height: calc(100% - 120px);">
                             <!-- Messages will be populated here -->
                         </div>
                         
                         <!-- Message Input Area -->
-                        <div id="dmMessageInput" style="padding: 12px; border-top: 1px solid #d0d0d0; background: white;">
+                        <div id="dmMessageInput" style="padding: 12px; border-top: 1px solid #d0d0d0; background: white; flex-shrink: 0;">
                             <div style="display: flex; gap: 8px; align-items: center;">
                                 <input type="text" class="form-input" id="dmMessageText" placeholder="Type a message..." style="flex: 1; font-size: 11px;" onkeypress="handleMessageKeyPress(event)">
                                 <button class="xp-button primary" onclick="sendChatMessage().catch(console.error)" style="padding: 4px 12px; font-size: 10px;">Send</button>
@@ -2251,6 +2251,66 @@
                 console.log('✅ Login state cleared');
             } catch (error) {
                 console.error('❌ Failed to clear login state:', error);
+            }
+        }
+
+        // ===== RAILWAY MESSAGE API FUNCTIONS =====
+        
+        // Send message via Railway API
+        async function sendMessageViaRailway(senderId, recipientId, content, conversationId) {
+            try {
+                console.log('📤 Sending message via Railway:', { senderId, recipientId, content, conversationId });
+                
+                const response = await fetch(`${RAILWAY_API_URL}/api/messages/send`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        senderId,
+                        recipientId,
+                        content,
+                        conversationId
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('✅ Message sent via Railway:', result);
+                    return result.message;
+                } else {
+                    console.error('❌ Railway message send failed:', response.status, response.statusText);
+                    return null;
+                }
+            } catch (error) {
+                console.error('❌ Railway message send error:', error);
+                return null;
+            }
+        }
+        
+        // Get conversations via Railway API
+        async function getConversationsViaRailway(userId) {
+            try {
+                console.log('📥 Getting conversations via Railway for user:', userId);
+                
+                const response = await fetch(`${RAILWAY_API_URL}/api/messages/conversations/${userId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('✅ Conversations received via Railway:', result);
+                    return result.conversations || [];
+                } else {
+                    console.error('❌ Railway conversations fetch failed:', response.status, response.statusText);
+                    return [];
+                }
+            } catch (error) {
+                console.error('❌ Railway conversations fetch error:', error);
+                return [];
             }
         }
 
@@ -4639,18 +4699,28 @@
             // Update chat header
             const otherUser = await getOtherUserInConversation(conversation);
             console.log('🔄 Other user:', otherUser);
+            console.log('🔄 Other user type:', typeof otherUser);
+            console.log('🔄 Conversation participants:', conversation.participants);
+            console.log('🔄 Current username from getCurrentUsername:', await getCurrentUsername());
             
             const chatAvatar = document.getElementById('dmChatAvatar');
             const chatName = document.getElementById('dmChatName');
             
-            if (chatAvatar) {
-                chatAvatar.textContent = await getUserAvatar(otherUser);
+            if (chatAvatar && otherUser) {
+                const avatar = await getUserAvatar(otherUser);
+                console.log('🔄 Got avatar:', avatar);
+                console.log('🔄 Avatar type:', typeof avatar);
+                chatAvatar.textContent = avatar;
                 console.log('🔄 Updated chat avatar');
+            } else {
+                console.log('🔄 Chat avatar not updated - chatAvatar:', chatAvatar, 'otherUser:', otherUser);
             }
             
-            if (chatName) {
+            if (chatName && otherUser) {
                 chatName.textContent = otherUser;
                 console.log('🔄 Updated chat name');
+            } else {
+                console.log('🔄 Chat name not updated - chatName:', chatName, 'otherUser:', otherUser);
             }
             
             // Load messages for this conversation
@@ -4673,9 +4743,24 @@
         async function loadConversations() {
             console.log('🔄 loadConversations called');
             const conversationsList = document.getElementById('dmConversationsList');
-            conversations = await getAllConversations();
             
-            console.log('🔄 Loaded conversations from storage:', conversations.length);
+            // Try to load conversations from Railway first
+            if (currentUserId) {
+                console.log('🔄 Loading conversations from Railway for user:', currentUserId);
+                const railwayConversations = await getConversationsViaRailway(currentUserId);
+                if (railwayConversations && railwayConversations.length > 0) {
+                    console.log('✅ Loaded conversations from Railway:', railwayConversations.length);
+                    conversations = railwayConversations;
+                } else {
+                    console.log('⚠️ No conversations from Railway, using local storage');
+                    conversations = await getAllConversations();
+                }
+            } else {
+                console.log('⚠️ No currentUserId, using local storage');
+                conversations = await getAllConversations();
+            }
+            
+            console.log('🔄 Loaded conversations:', conversations.length);
             console.log('🔄 Conversations:', conversations.map(c => ({ id: c.id, messages: c.messages.length })));
             
             if (conversations.length === 0) {
@@ -4690,13 +4775,13 @@
             }
             
             conversationsList.innerHTML = '';
-            conversations.forEach(conversation => {
-                const conversationElement = createConversationElement(conversation);
+            for (const conversation of conversations) {
+                const conversationElement = await createConversationElement(conversation);
                 conversationsList.appendChild(conversationElement);
-            });
+            }
         }
 
-        function createConversationElement(conversation) {
+        async function createConversationElement(conversation) {
             const conversationDiv = document.createElement('div');
             conversationDiv.style.cssText = `
                 padding: 12px;
@@ -4707,8 +4792,8 @@
                 position: relative;
             `;
             
-            const otherUser = getOtherUserInConversation(conversation);
-            const otherUserAvatar = getUserAvatar(otherUser);
+            const otherUser = await getOtherUserInConversation(conversation);
+            const otherUserAvatar = await getUserAvatar(otherUser);
             const lastMessage = conversation.messages && conversation.messages.length > 0 ? conversation.messages[conversation.messages.length - 1] : null;
             const lastMessageTime = lastMessage && lastMessage.timestamp ? new Date(lastMessage.timestamp).toLocaleDateString() : 'No messages';
             const hasUnreadMessages = hasUnreadMessagesInConversation(conversation);
@@ -5046,36 +5131,51 @@
             console.log('📝 Created message:', message);
             console.log('📝 Current conversation before adding message:', currentConversation);
             
-            // Add message to conversation
-            currentConversation.messages.push(message);
-            currentConversation.lastActivity = new Date().toISOString();
+            // Send message via Railway API
+            const railwayMessage = await sendMessageViaRailway(
+                currentUserId, // senderId
+                message.recipient, // recipientId (username)
+                messageText, // content
+                currentConversation.id // conversationId
+            );
             
-            console.log('📝 Current conversation after adding message:', currentConversation);
-            console.log('📝 Messages count:', currentConversation.messages.length);
-            
-            // Save conversation
-            saveConversation(currentConversation);
-            
-            // Update the conversations array to reflect the new message
-            const conversationIndex = conversations.findIndex(conv => conv.id === currentConversation.id);
-            console.log('🔄 Conversation index in array:', conversationIndex);
-            console.log('🔄 Total conversations in array:', conversations.length);
-            if (conversationIndex !== -1) {
-                conversations[conversationIndex] = currentConversation;
-                console.log('🔄 Updated conversation in array');
+            if (railwayMessage) {
+                console.log('✅ Message sent via Railway successfully');
+                
+                // Add message to local conversation for immediate display
+                currentConversation.messages.push(message);
+                currentConversation.lastActivity = new Date().toISOString();
+                
+                console.log('📝 Current conversation after adding message:', currentConversation);
+                console.log('📝 Messages count:', currentConversation.messages.length);
+                
+                // Save conversation locally (for offline fallback)
+                saveConversation(currentConversation);
+                
+                // Update the conversations array to reflect the new message
+                const conversationIndex = conversations.findIndex(conv => conv.id === currentConversation.id);
+                console.log('🔄 Conversation index in array:', conversationIndex);
+                console.log('🔄 Total conversations in array:', conversations.length);
+                if (conversationIndex !== -1) {
+                    conversations[conversationIndex] = currentConversation;
+                    console.log('🔄 Updated conversation in array');
+                } else {
+                    console.log('🔄 Conversation not found in array, adding it');
+                    conversations.push(currentConversation);
+                }
+                
+                // Clear input and refresh messages
+                document.getElementById('dmMessageText').value = '';
+                console.log('🔄 About to call loadConversationMessages with ID:', currentConversation.id);
+                await loadConversationMessages(currentConversation.id);
+                console.log('🔄 loadConversationMessages completed');
+                
+                // Refresh conversations list to update last message
+                await loadConversations();
             } else {
-                console.log('🔄 Conversation not found in array, adding it');
-                conversations.push(currentConversation);
+                console.error('❌ Failed to send message via Railway');
+                alert('Failed to send message. Please try again.');
             }
-            
-            // Clear input and refresh messages
-            document.getElementById('dmMessageText').value = '';
-            console.log('🔄 About to call loadConversationMessages with ID:', currentConversation.id);
-            await loadConversationMessages(currentConversation.id);
-            console.log('🔄 loadConversationMessages completed');
-            
-            // Refresh conversations list to update last message
-            loadConversations();
         }
 
         function handleMessageKeyPress(event) {
@@ -5084,19 +5184,22 @@
             }
         }
 
-        function searchConversations() {
+        async function searchConversations() {
             const searchTerm = document.getElementById('dmConversationSearch').value.toLowerCase().trim();
             const conversationsList = document.getElementById('dmConversationsList');
             
             if (searchTerm === '') {
-                loadConversations();
+                await loadConversations();
                 return;
             }
             
-            const filteredConversations = conversations.filter(conversation => {
-                const otherUser = getOtherUserInConversation(conversation);
-                return otherUser.toLowerCase().includes(searchTerm);
-            });
+            const filteredConversations = [];
+            for (const conversation of conversations) {
+                const otherUser = await getOtherUserInConversation(conversation);
+                if (otherUser && otherUser.toLowerCase().includes(searchTerm)) {
+                    filteredConversations.push(conversation);
+                }
+            }
             
             if (filteredConversations.length === 0) {
                 conversationsList.innerHTML = `
@@ -5110,10 +5213,10 @@
             }
             
             conversationsList.innerHTML = '';
-            filteredConversations.forEach(conversation => {
-                const conversationElement = createConversationElement(conversation);
+            for (const conversation of filteredConversations) {
+                const conversationElement = await createConversationElement(conversation);
                 conversationsList.appendChild(conversationElement);
-            });
+            }
         }
 
         // Helper functions
