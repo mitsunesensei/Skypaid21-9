@@ -4739,10 +4739,15 @@
         }
 
         async function loadConversationMessages(conversationId) {
+            console.log('🔄 loadConversationMessages called with:', conversationId);
             const messagesArea = document.getElementById('dmMessagesArea');
             const conversation = conversations.find(conv => conv.id === conversationId);
             
+            console.log('🔄 Found conversation:', conversation);
+            console.log('🔄 Conversation messages:', conversation ? conversation.messages : 'No conversation');
+            
             if (!conversation || conversation.messages.length === 0) {
+                console.log('🔄 No messages found, showing empty state');
                 messagesArea.innerHTML = `
                     <div style="text-align: center; padding: 40px; color: #666;">
                         <div style="font-size: 48px; margin-bottom: 16px;">💬</div>
@@ -4753,20 +4758,28 @@
                 return;
             }
             
+            console.log('🔄 Loading', conversation.messages.length, 'messages');
             messagesArea.innerHTML = '';
             for (const message of conversation.messages) {
+                console.log('🔄 Creating message element for:', message);
                 const messageElement = await createChatMessageElement(message);
                 messagesArea.appendChild(messageElement);
             }
             
             // Scroll to bottom
             messagesArea.scrollTop = messagesArea.scrollHeight;
+            console.log('🔄 Messages loaded and scrolled to bottom');
         }
 
         async function createChatMessageElement(message) {
+            console.log('🎨 Creating message element for:', message);
             const messageDiv = document.createElement('div');
             const currentUsername = await getCurrentUsername();
             const isOwnMessage = message.sender === currentUsername;
+            
+            console.log('🎨 Current username:', currentUsername);
+            console.log('🎨 Message sender:', message.sender);
+            console.log('🎨 Is own message:', isOwnMessage);
             
             messageDiv.style.cssText = `
                 margin-bottom: 8px;
@@ -5025,9 +5038,15 @@
                 read: false
             };
             
+            console.log('📝 Created message:', message);
+            console.log('📝 Current conversation before adding message:', currentConversation);
+            
             // Add message to conversation
             currentConversation.messages.push(message);
             currentConversation.lastActivity = new Date().toISOString();
+            
+            console.log('📝 Current conversation after adding message:', currentConversation);
+            console.log('📝 Messages count:', currentConversation.messages.length);
             
             // Save conversation
             saveConversation(currentConversation);
