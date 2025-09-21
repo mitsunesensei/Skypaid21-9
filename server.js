@@ -483,12 +483,65 @@ app.post('/api/inventory/add', async (req, res) => {
 });
 
 // Messaging System Routes
+// Get conversations for a user
 app.get('/api/messages/conversations/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
-        const conversations = await Database.read(`conversations_${userId}`);
+        const client = await pool.connect();
         
-        res.json({ success: true, conversations: Object.values(conversations) });
+        // Get conversations where user is a participant
+        const conversationsQuery = `
+            SELECT DISTINCT c.id, c.created_at, c.updated_at,
+                   u1.username as participant1_username,
+                   u2.username as participant2_username,
+                   u1.id as participant1_id,
+                   u2.id as participant2_id
+            FROM conversations c
+            LEFT JOIN users u1 ON c.participant1_id = u1.id
+            LEFT JOIN users u2 ON c.participant2_id = u2.id
+            WHERE c.participant1_id = $1 OR c.participant2_id = $1
+            ORDER BY c.updated_at DESC
+        `;
+        
+        const conversationsResult = await client.query(conversationsQuery, [userId]);
+        
+        // Get messages for each conversation
+        const conversations = [];
+        for (const conv of conversationsResult.rows) {
+            const messagesQuery = `
+                SELECT m.id, m.content, m.created_at, m.read_status,
+                       u.username as sender_username, u.id as sender_id
+                FROM messages m
+                LEFT JOIN users u ON m.sender_id = u.id
+                WHERE m.conversation_id = $1
+                ORDER BY m.created_at ASC
+            `;
+            
+            const messagesResult = await client.query(messagesQuery, [conv.id]);
+            
+            // Determine the other participant
+            const otherParticipant = conv.participant1_id == userId ? 
+                { id: conv.participant2_id, username: conv.participant2_username } :
+                { id: conv.participant1_id, username: conv.participant1_username };
+            
+            conversations.push({
+                id: conv.id,
+                participants: [conv.participant1_username, conv.participant2_username],
+                otherParticipant: otherParticipant.username,
+                messages: messagesResult.rows.map(msg => ({
+                    id: msg.id,
+                    sender: msg.sender_username,
+                    senderId: msg.sender_id,
+                    content: msg.content,
+                    timestamp: msg.created_at.toISOString(),
+                    read: msg.read_status
+                })),
+                lastActivity: conv.updated_at.toISOString()
+            });
+        }
+        
+        client.release();
+        res.json({ success: true, conversations });
 
     } catch (error) {
         console.error('Conversations fetch error:', error);
@@ -496,51 +549,72 @@ app.get('/api/messages/conversations/:userId', async (req, res) => {
     }
 });
 
+// Send a message
 app.post('/api/messages/send', async (req, res) => {
     try {
         const { senderId, recipientId, content, conversationId } = req.body;
+        const client = await pool.connect();
         
-        const message = {
-            id: crypto.randomUUID(),
-            senderId,
-            recipientId,
-            content,
-            timestamp: new Date().toISOString(),
-            read: false
-        };
-
-        // Add message to both users' conversations
-        const senderConversations = await Database.read(`conversations_${senderId}`);
-        const recipientConversations = await Database.read(`conversations_${recipientId}`);
-
-        if (!senderConversations[conversationId]) {
-            senderConversations[conversationId] = {
-                id: conversationId,
-                participants: [senderId, recipientId],
-                messages: [],
-                lastActivity: new Date().toISOString()
-            };
-        }
-
-        if (!recipientConversations[conversationId]) {
-            recipientConversations[conversationId] = {
-                id: conversationId,
-                participants: [senderId, recipientId],
-                messages: [],
-                lastActivity: new Date().toISOString()
-            };
-        }
-
-        senderConversations[conversationId].messages.push(message);
-        senderConversations[conversationId].lastActivity = new Date().toISOString();
+        // Get sender and recipient usernames
+        const senderQuery = await client.query('SELECT username FROM users WHERE id = $1', [senderId]);
+        const recipientQuery = await client.query('SELECT username FROM users WHERE id = $1', [recipientId]);
         
-        recipientConversations[conversationId].messages.push(message);
-        recipientConversations[conversationId].lastActivity = new Date().toISOString();
-
-        await Database.write(`conversations_${senderId}`, senderConversations);
-        await Database.write(`conversations_${recipientId}`, recipientConversations);
-
-        res.json({ success: true, message });
+        if (senderQuery.rows.length === 0 || recipientQuery.rows.length === 0) {
+            client.release();
+            return res.status(400).json({ success: false, error: 'Invalid sender or recipient' });
+        }
+        
+        const senderUsername = senderQuery.rows[0].username;
+        const recipientUsername = recipientQuery.rows[0].username;
+        
+        // Ensure conversation exists
+        let convId = conversationId;
+        if (!convId) {
+            // Create conversation ID from usernames
+            convId = [senderUsername, recipientUsername].sort().join('_');
+        }
+        
+        // Check if conversation exists, create if not
+        const convCheck = await client.query('SELECT id FROM conversations WHERE id = $1', [convId]);
+        if (convCheck.rows.length === 0) {
+            await client.query(`
+                INSERT INTO conversations (id, participant1_id, participant2_id)
+                VALUES ($1, $2, $3)
+            `, [convId, senderId, recipientId]);
+        }
+        
+        // Insert message
+        const messageQuery = `
+            INSERT INTO messages (conversation_id, sender_id, recipient_id, content)
+            VALUES ($1, $2, $3, $4)
+            RETURNING id, created_at
+        `;
+        
+        const messageResult = await client.query(messageQuery, [convId, senderId, recipientId, content]);
+        const message = messageResult.rows[0];
+        
+        // Update conversation timestamp
+        await client.query(`
+            UPDATE conversations 
+            SET updated_at = CURRENT_TIMESTAMP 
+            WHERE id = $1
+        `, [convId]);
+        
+        client.release();
+        
+        res.json({ 
+            success: true, 
+            message: {
+                id: message.id,
+                sender: senderUsername,
+                senderId: senderId,
+                recipient: recipientUsername,
+                recipientId: recipientId,
+                content: content,
+                timestamp: message.created_at.toISOString(),
+                read: false
+            }
+        });
 
     } catch (error) {
         console.error('Message send error:', error);
@@ -1002,6 +1076,30 @@ async function createTables() {
                 data_value JSONB,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        
+        // Create conversations table
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS conversations (
+                id VARCHAR(255) PRIMARY KEY,
+                participant1_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                participant2_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        
+        // Create messages table
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS messages (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                conversation_id VARCHAR(255) REFERENCES conversations(id) ON DELETE CASCADE,
+                sender_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                recipient_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                content TEXT NOT NULL,
+                read_status BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
         

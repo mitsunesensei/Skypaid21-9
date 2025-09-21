@@ -2313,6 +2313,40 @@
                 return [];
             }
         }
+        
+        // Get user ID from username via Railway API
+        async function getUserIdFromUsername(username) {
+            try {
+                console.log('🔍 Getting user ID for username:', username);
+                
+                const response = await fetch(`${RAILWAY_API_URL}/api/users/search?q=${encodeURIComponent(username)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('✅ User search result:', result);
+                    
+                    if (result.users && result.users.length > 0) {
+                        const user = result.users.find(u => u.username === username);
+                        if (user) {
+                            console.log('✅ Found user ID:', user.id);
+                            return user.id;
+                        }
+                    }
+                } else {
+                    console.error('❌ User search failed:', response.status, response.statusText);
+                }
+                
+                return null;
+            } catch (error) {
+                console.error('❌ User search error:', error);
+                return null;
+            }
+        }
 
         // ===== RAILWAY API FUNCTIONS =====
         
@@ -4865,10 +4899,14 @@
             console.log('🎨 Creating message element for:', message);
             const messageDiv = document.createElement('div');
             const currentUsername = await getCurrentUsername();
-            const isOwnMessage = message.sender === currentUsername;
+            
+            // Handle both Railway API format and local format
+            const messageSender = message.sender || message.senderUsername;
+            const isOwnMessage = messageSender === currentUsername;
             
             console.log('🎨 Current username:', currentUsername);
-            console.log('🎨 Message sender:', message.sender);
+            console.log('🎨 Message sender:', messageSender);
+            console.log('🎨 Message object keys:', Object.keys(message));
             console.log('🎨 Is own message:', isOwnMessage);
             
             messageDiv.style.cssText = `
@@ -5131,10 +5169,18 @@
             console.log('📝 Created message:', message);
             console.log('📝 Current conversation before adding message:', currentConversation);
             
+            // Get recipient user ID from username
+            const recipientUserId = await getUserIdFromUsername(message.recipient);
+            if (!recipientUserId) {
+                console.error('❌ Could not find recipient user ID for:', message.recipient);
+                alert('Error: Could not find recipient user.');
+                return;
+            }
+            
             // Send message via Railway API
             const railwayMessage = await sendMessageViaRailway(
                 currentUserId, // senderId
-                message.recipient, // recipientId (username)
+                recipientUserId, // recipientId (user ID)
                 messageText, // content
                 currentConversation.id // conversationId
             );
