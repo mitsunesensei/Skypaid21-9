@@ -2551,7 +2551,7 @@
                 
                 // Update DM notification dot for the logged-in user
                 setTimeout(() => {
-                    loadDMMessages();
+                    loadDMMessages().catch(console.error);
                     updateDMNotificationDot();
                 }, 200);
                 
@@ -2678,7 +2678,7 @@
             alert('👥 Friends\n\nThis feature will show your friends list, followers, and social features.\n\nComing soon!');
         }
 
-        function openDM() {
+        async function openDM() {
             if (!isLoggedIn) {
                 alert('Please login first to access Direct Messages.');
                 return;
@@ -2701,7 +2701,7 @@
             
             // Load messages and show DM modal
             try {
-                loadDMMessages();
+                await loadDMMessages();
                 console.log('loadDMMessages completed');
             } catch (error) {
                 console.error('Error in loadDMMessages:', error);
@@ -2742,7 +2742,7 @@
         }
 
         // Debug function to check all modal elements
-        function debugDMModal() {
+        async function debugDMModal() {
             console.log('=== DEBUGGING DM MODAL ===');
             
             // Check if user is logged in
@@ -2778,7 +2778,7 @@
             // Check if there are any JavaScript errors
             console.log('Checking for JavaScript errors...');
             try {
-                loadDMMessages();
+                await loadDMMessages();
                 console.log('loadDMMessages() executed successfully');
             } catch (error) {
                 console.error('Error in loadDMMessages():', error);
@@ -3188,7 +3188,7 @@
             
             // Update DM notification dot for the logged-in user
             setTimeout(() => {
-                loadDMMessages();
+                loadDMMessages().catch(console.error);
                 updateDMNotificationDot();
             }, 200);
             
@@ -4593,7 +4593,7 @@
         }
 
         async function showChatInterface(conversationId) {
-            console.log('showChatInterface called with:', conversationId);
+            console.log('🔄 showChatInterface called with:', conversationId);
             
             // Hide welcome screen and show chat interface
             const welcomeScreen = document.getElementById('dmWelcomeScreen');
@@ -4601,77 +4601,82 @@
             
             if (welcomeScreen) {
                 welcomeScreen.style.display = 'none';
-                console.log('Welcome screen hidden');
+                console.log('🔄 Welcome screen hidden');
             }
             
             if (chatInterface) {
                 chatInterface.style.display = 'flex';
-                console.log('Chat interface shown');
+                console.log('🔄 Chat interface shown');
             }
             
             // Find the conversation in the conversations array
             let conversation = conversations.find(conv => conv.id === conversationId);
-            console.log('Found conversation in array:', conversation);
+            console.log('🔄 Found conversation in array:', conversation);
             
             // If not found in array, try to load it directly from localStorage
             if (!conversation) {
                 conversation = getConversation(conversationId);
-                console.log('Loaded conversation from localStorage:', conversation);
+                console.log('🔄 Loaded conversation from localStorage:', conversation);
                 if (conversation) {
                     // Add it to the conversations array
                     conversations.push(conversation);
-                    console.log('Added conversation to array');
+                    console.log('🔄 Added conversation to array');
                 }
             }
             
             if (!conversation) {
-                console.error('Conversation not found:', conversationId);
+                console.error('🔄 Conversation not found:', conversationId);
                 showWelcomeScreen();
                 return;
             }
             
             currentConversation = conversation;
-            console.log('Set current conversation:', currentConversation);
+            console.log('🔄 Set current conversation:', currentConversation);
             
             // Mark conversation as read when chat interface is shown
             markConversationAsRead(conversationId);
             
             // Update chat header
             const otherUser = await getOtherUserInConversation(conversation);
-            console.log('Other user:', otherUser);
+            console.log('🔄 Other user:', otherUser);
             
             const chatAvatar = document.getElementById('dmChatAvatar');
             const chatName = document.getElementById('dmChatName');
             
             if (chatAvatar) {
                 chatAvatar.textContent = await getUserAvatar(otherUser);
-                console.log('Updated chat avatar');
+                console.log('🔄 Updated chat avatar');
             }
             
             if (chatName) {
                 chatName.textContent = otherUser;
-                console.log('Updated chat name');
+                console.log('🔄 Updated chat name');
             }
             
             // Load messages for this conversation
+            console.log('🔄 About to load messages for conversation:', conversationId);
             await loadConversationMessages(conversationId);
-            console.log('Loaded conversation messages');
+            console.log('🔄 Loaded conversation messages');
         }
 
-        function loadDMMessages() {
-            console.log('Loading DM messages...');
+        async function loadDMMessages() {
+            console.log('🔄 loadDMMessages called - loading DM messages...');
             try {
-                loadConversations();
+                await loadConversations();
                 updateDMNotificationDot();
-                console.log('DM messages loaded successfully');
+                console.log('🔄 DM messages loaded successfully');
             } catch (error) {
-                console.error('Error loading DM messages:', error);
+                console.error('🔄 Error loading DM messages:', error);
             }
         }
 
-        function loadConversations() {
+        async function loadConversations() {
+            console.log('🔄 loadConversations called');
             const conversationsList = document.getElementById('dmConversationsList');
-            conversations = getAllConversations();
+            conversations = await getAllConversations();
+            
+            console.log('🔄 Loaded conversations from storage:', conversations.length);
+            console.log('🔄 Conversations:', conversations.map(c => ({ id: c.id, messages: c.messages.length })));
             
             if (conversations.length === 0) {
                 conversationsList.innerHTML = `
@@ -5175,9 +5180,11 @@
             localStorage.setItem(`conversation_${conversation.id}`, JSON.stringify(conversation));
         }
 
-        function getAllConversations() {
+        async function getAllConversations() {
             const conversations = [];
-            const currentUsername = getCurrentUsername();
+            const currentUsername = await getCurrentUsername();
+            
+            console.log('🔄 getAllConversations - Current username:', currentUsername);
             
             // Clean up corrupted read status data first
             cleanupCorruptedReadStatus();
@@ -5191,7 +5198,9 @@
                         const conversationData = localStorage.getItem(key);
                         if (conversationData) {
                             const conversation = JSON.parse(conversationData);
+                            console.log('🔄 Checking conversation:', conversation.id, 'participants:', conversation.participants);
                             if (conversation && conversation.participants && conversation.participants.includes(currentUsername)) {
+                                console.log('🔄 Adding conversation:', conversation.id);
                                 conversations.push(conversation);
                             }
                         }
