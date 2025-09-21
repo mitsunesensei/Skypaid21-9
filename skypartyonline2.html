@@ -3556,6 +3556,9 @@
                 initializeInventory();
             }, 400);
             
+            // Start avatar synchronization system
+            startAvatarSyncSystem();
+            
             console.log('✅ User successfully signed in via Railway:', username, 'with', gameCredits, 'credits and character:', currentCharacter);
         }
         
@@ -4533,6 +4536,10 @@
                     console.log('⚠️ Railway API not available, using local storage fallback');
                 }
             });
+            
+            // Start avatar synchronization system
+            startAvatarSyncSystem();
+            
             // Registration fields
             const regFields = ['regUsername', 'regDateOfBirth', 'regEmail', 'regPassword'];
             regFields.forEach(fieldId => {
@@ -4564,6 +4571,132 @@
             populateAllCharacters();
         });
 
+        // Avatar Synchronization System
+        let avatarSyncInterval = null;
+        let lastSyncTime = 0;
+        
+        function startAvatarSyncSystem() {
+            console.log('🔄 Starting avatar synchronization system...');
+            
+            // Initial sync on startup
+            syncAvatarsFromDatabase();
+            
+            // Set up periodic sync every 10 seconds
+            avatarSyncInterval = setInterval(() => {
+                syncAvatarsFromDatabase();
+            }, 10000);
+            
+            console.log('✅ Avatar synchronization system started');
+        }
+        
+        function stopAvatarSyncSystem() {
+            if (avatarSyncInterval) {
+                clearInterval(avatarSyncInterval);
+                avatarSyncInterval = null;
+                console.log('⏹️ Avatar synchronization system stopped');
+            }
+        }
+        
+        async function syncAvatarsFromDatabase() {
+            if (!isLoggedIn || !currentUserId) {
+                return;
+            }
+            
+            try {
+                console.log('🔄 Syncing avatars from database...');
+                
+                // Get user data from Railway
+                const response = await fetch(`${RAILWAY_API_URL}/api/user/${currentUserId}/data`);
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success && result.data) {
+                        const userData = result.data;
+                        
+                        // Check if character data has changed
+                        if (userData.currentCharacter && userData.currentCharacter !== currentCharacter) {
+                            console.log('🔄 Character changed from', currentCharacter, 'to', userData.currentCharacter);
+                            currentCharacter = userData.currentCharacter;
+                            updateAvatar();
+                        }
+                        
+                        // Check if owned characters have changed
+                        if (userData.ownedCharacters && JSON.stringify(userData.ownedCharacters) !== JSON.stringify(ownedCharacters)) {
+                            console.log('🔄 Owned characters changed:', userData.ownedCharacters);
+                            ownedCharacters = userData.ownedCharacters;
+                            updateCharacterDatabase();
+                            updateCharacterCardStatuses();
+                            populateAllCharacters();
+                        }
+                        
+                        // Check if game credits have changed
+                        if (userData.gameCredits !== undefined && userData.gameCredits !== gameCredits) {
+                            console.log('🔄 Game credits changed from', gameCredits, 'to', userData.gameCredits);
+                            gameCredits = userData.gameCredits;
+                            
+                            // Update credit displays
+                            const creditsAmount = document.getElementById('creditsAmount');
+                            const gcBalance = document.getElementById('gcBalance');
+                            const creditsAmountSidebar = document.getElementById('creditsAmountSidebar');
+                            if (creditsAmount) creditsAmount.textContent = gameCredits;
+                            if (gcBalance) gcBalance.textContent = gameCredits + ' GC';
+                            if (creditsAmountSidebar) creditsAmountSidebar.textContent = gameCredits + ' GC';
+                        }
+                        
+                        lastSyncTime = Date.now();
+                        console.log('✅ Avatar sync completed');
+                    }
+                }
+            } catch (error) {
+                console.log('⚠️ Avatar sync failed:', error.message);
+            }
+        }
+        
+        // Enhanced updateAvatar function that also syncs to database
+        function updateAvatar() {
+            const character = characterDatabase.find(char => char.id === currentCharacter);
+            const avatarEmoji = character ? character.icon : '🐱';
+            
+            // Update ALL avatar displays consistently
+            updateAllAvatarDisplays(avatarEmoji);
+            
+            // Store in localStorage for quick access
+            localStorage.setItem('userAvatar', avatarEmoji);
+            
+            // Sync to Railway database if logged in
+            if (isLoggedIn && currentUserId) {
+                syncAvatarToDatabase();
+            }
+            
+            console.log('🔄 Updated avatar to:', avatarEmoji, 'for character:', currentCharacter);
+        }
+        
+        async function syncAvatarToDatabase() {
+            if (!isLoggedIn || !currentUserId) return;
+            
+            try {
+                const response = await fetch(`${RAILWAY_API_URL}/api/user/${currentUserId}/data`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        currentCharacter: currentCharacter,
+                        ownedCharacters: ownedCharacters,
+                        gameCredits: gameCredits
+                    })
+                });
+                
+                if (response.ok) {
+                    console.log('✅ Avatar synced to database');
+                } else {
+                    console.log('⚠️ Failed to sync avatar to database');
+                }
+            } catch (error) {
+                console.log('⚠️ Error syncing avatar to database:', error.message);
+            }
+        }
+        
+        // Enhanced selectCharacter function that triggers sync
         async function selectCharacter(characterName) {
             if (!isLoggedIn) {
                 alert('Please login first to select characters.');
@@ -4587,6 +4720,9 @@
             
             // Save character data
             await saveCharacterData();
+            
+            // Sync to database immediately
+            await syncAvatarToDatabase();
             
             console.log('✅ Character selected successfully:', characterName);
             
@@ -7110,6 +7246,9 @@
         // Logout Functions
         function confirmLogout() {
             console.log('🚪 Confirming logout...');
+            
+            // Stop avatar synchronization system
+            stopAvatarSyncSystem();
             
             // Reset all user data
             isLoggedIn = false;
