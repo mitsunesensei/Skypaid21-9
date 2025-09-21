@@ -3832,10 +3832,10 @@
                     
                     if (filteredUsers.length > 0) {
                         userResultsList.innerHTML = '';
-                        filteredUsers.forEach(username => {
-                            const userCard = createUserCard(username);
+                        for (const username of filteredUsers) {
+                            const userCard = await createUserCard(username);
                             userResultsList.appendChild(userCard);
-                        });
+                        }
                         userSearchResults.style.display = 'block';
                         console.log('✅ Showing Railway users in search results');
                         return;
@@ -3862,7 +3862,7 @@
             userSearchResults.style.display = 'block';
         }
 
-        function createUserCard(username) {
+        async function createUserCard(username) {
             const card = document.createElement('div');
             card.className = 'user-card';
             card.style.cssText = `
@@ -3880,7 +3880,7 @@
             `;
             
             // Get user's avatar based on their character
-            const userAvatar = getUserAvatar(username);
+            const userAvatar = await getUserAvatar(username);
             
             card.innerHTML = `
                 <div style="font-size: 18px; margin-bottom: 4px;">${userAvatar}</div>
@@ -3904,33 +3904,60 @@
             return card;
         }
 
-        function getUserAvatar(username) {
-            // Get user's email from username mapping
-            const mappings = getUsernameMappings();
-            const userEmail = mappings[username];
-            
-            if (!userEmail) {
-                return '👤'; // Default avatar if user not found
-            }
-            
-            // Get user's character data
-            const userStorageKey = `characterData_${userEmail}`;
-            const savedData = localStorage.getItem(userStorageKey);
-            
-            if (savedData) {
-                try {
-                    const characterData = JSON.parse(savedData);
-                    const userCharacter = characterData.currentCharacter || 'kitty';
-                    
-                    // Find character in database to get the correct emoji
-                    const character = characterDatabase.find(char => char.id === userCharacter);
-                    return character ? character.icon : '🐱'; // Default to kitty emoji
-                } catch (error) {
-                    console.log('Error parsing character data for user:', username, error);
-                    return '🐱'; // Default to kitty emoji
+        async function getUserAvatar(username) {
+            // Try to get user data from Railway API first
+            try {
+                const response = await fetch(`${RAILWAY_API_URL}/api/users/search?query=${encodeURIComponent(username)}`);
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success && result.users && result.users.length > 0) {
+                        const user = result.users.find(u => u.username === username);
+                        if (user && user.currentCharacter) {
+                            // Find character in database to get the correct emoji
+                            const character = characterDatabase.find(char => char.id === user.currentCharacter);
+                            if (character) {
+                                console.log('✅ Got avatar from Railway API:', character.icon);
+                                return character.icon;
+                            }
+                        }
+                    }
                 }
+            } catch (error) {
+                console.log('⚠️ Could not get avatar from Railway API:', error);
             }
             
+            // Fallback: Try local mappings
+            try {
+                const mappings = await getUsernameMappings();
+                const userEmail = mappings[username];
+                
+                if (userEmail) {
+                    // Get user's character data from local storage
+                    const userStorageKey = `characterData_${userEmail}`;
+                    const savedData = localStorage.getItem(userStorageKey);
+                    
+                    if (savedData) {
+                        try {
+                            const characterData = JSON.parse(savedData);
+                            const userCharacter = characterData.currentCharacter || 'kitty';
+                            
+                            // Find character in database to get the correct emoji
+                            const character = characterDatabase.find(char => char.id === userCharacter);
+                            if (character) {
+                                console.log('⚠️ Got avatar from local storage (fallback):', character.icon);
+                                return character.icon;
+                            }
+                        } catch (error) {
+                            console.log('Error parsing character data for user:', username, error);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.log('⚠️ Could not get avatar from local mappings:', error);
+            }
+            
+            // Default avatar
+            console.log('❌ Using default avatar for:', username);
             return '🐱'; // Default to kitty emoji for new users
         }
 
@@ -4731,10 +4758,10 @@
                     
                     if (filteredUsers.length > 0) {
                         recipientList.innerHTML = '';
-                        filteredUsers.forEach(username => {
-                            const recipientCard = createRecipientCard(username);
+                        for (const username of filteredUsers) {
+                            const recipientCard = await createRecipientCard(username);
                             recipientList.appendChild(recipientCard);
-                        });
+                        }
                         recipientResults.style.display = 'block';
                         console.log('✅ DM Showing Railway users in search results');
                         return;
@@ -4757,7 +4784,7 @@
             recipientResults.style.display = 'block';
         }
 
-        function createRecipientCard(username) {
+        async function createRecipientCard(username) {
             const card = document.createElement('div');
             card.className = 'recipient-card';
             card.style.cssText = `
@@ -4774,7 +4801,7 @@
                 justify-content: center;
             `;
             
-            const userAvatar = getUserAvatar(username);
+            const userAvatar = await getUserAvatar(username);
             
             card.innerHTML = `
                 <div style="font-size: 16px; margin-bottom: 4px;">${userAvatar}</div>
@@ -4797,11 +4824,11 @@
             return card;
         }
 
-        function selectRecipient(username) {
+        async function selectRecipient(username) {
             selectedDMRecipient = username;
             
             // Update selected recipient display
-            document.getElementById('dmSelectedRecipientAvatar').textContent = getUserAvatar(username);
+            document.getElementById('dmSelectedRecipientAvatar').textContent = await getUserAvatar(username);
             document.getElementById('dmSelectedRecipientName').textContent = username;
             document.getElementById('dmSelectedRecipient').style.display = 'block';
             
