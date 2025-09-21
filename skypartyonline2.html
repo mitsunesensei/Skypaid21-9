@@ -1584,22 +1584,22 @@
                 <p style="margin-bottom: 16px; font-size: 11px; color: #666;">Select how many Game Credits you'd like to purchase:</p>
                 
                 <div class="credits-grid">
-                    <div class="credits-option" onclick="purchaseCreditsPackage(500)">
+                    <div class="credits-option" onclick="purchaseCreditsPackage(500).catch(console.error)">
                         <div class="credits-icon">💸</div>
                         <div class="credits-package-title">500 GC</div>
                         <div class="credits-package-price">$4.99</div>
                     </div>
-                    <div class="credits-option" onclick="purchaseCreditsPackage(1000)">
+                    <div class="credits-option" onclick="purchaseCreditsPackage(1000).catch(console.error)">
                         <div class="credits-icon">💸</div>
                         <div class="credits-package-title">1000 GC</div>
                         <div class="credits-package-price">$8.99</div>
                     </div>
-                    <div class="credits-option" onclick="purchaseCreditsPackage(2000)">
+                    <div class="credits-option" onclick="purchaseCreditsPackage(2000).catch(console.error)">
                         <div class="credits-icon">💸</div>
                         <div class="credits-package-title">2000 GC</div>
                         <div class="credits-package-price">$15.99</div>
                     </div>
-                    <div class="credits-option" onclick="purchaseCreditsPackage(5000)">
+                    <div class="credits-option" onclick="purchaseCreditsPackage(5000).catch(console.error)">
                         <div class="credits-icon">💸</div>
                         <div class="credits-package-title">5000 GC</div>
                         <div class="credits-package-price">$29.99</div>
@@ -3586,7 +3586,7 @@
             document.getElementById('creditsModal').style.display = 'none';
         }
 
-        function purchaseCreditsPackage(amount) {
+        async function purchaseCreditsPackage(amount) {
             const prices = {
                 500: '$4.99',
                 1000: '$8.99',
@@ -3606,7 +3606,7 @@
                 document.getElementById('creditsAmountSidebar').textContent = gameCredits + ' GC';
                 
                 // Save character data
-                saveCharacterData();
+                await saveCharacterData();
                 
                 // Close modal
                 closeCreditsModal();
@@ -3620,7 +3620,7 @@
         ownedCharacters = ['kitty']; // Characters the user owns
 
         // Character and credits persistence functions
-        function saveCharacterData() {
+        async function saveCharacterData() {
             if (!currentUser) {
                 console.log('No current user to save character data for');
                 return;
@@ -3632,10 +3632,26 @@
                 gameCredits: gameCredits
             };
             
-            // Use user-specific storage key
+            // Save to local storage
             const userStorageKey = `characterData_${currentUser}`;
             localStorage.setItem(userStorageKey, JSON.stringify(characterData));
-            console.log('Saved character data for user:', currentUser, characterData);
+            console.log('Saved character data to local storage for user:', currentUser, characterData);
+            
+            // Also save to Railway database
+            if (currentUserId) {
+                try {
+                    const success = await updateUserData(characterData);
+                    if (success) {
+                        console.log('✅ Character data saved to Railway for user:', currentUser);
+                    } else {
+                        console.log('⚠️ Failed to save character data to Railway for user:', currentUser);
+                    }
+                } catch (error) {
+                    console.error('❌ Error saving character data to Railway:', error);
+                }
+            } else {
+                console.log('⚠️ No currentUserId available to save to Railway');
+            }
         }
 
         function loadCharacterData() {
@@ -3764,7 +3780,7 @@
                 giftBtn.style.display = 'none';
             } else if (character.owned) {
                 selectBtn.textContent = 'Select';
-                selectBtn.onclick = () => selectCharacter(characterName);
+                selectBtn.onclick = () => selectCharacter(characterName).catch(console.error);
                 giftBtn.textContent = 'Gift';
                 giftBtn.onclick = () => giftCharacter(characterName);
                 giftBtn.style.display = 'inline-block';
@@ -4072,13 +4088,20 @@
                     const result = await response.json();
                     if (result.success && result.users && result.users.length > 0) {
                         const user = result.users.find(u => u.username === username);
+                        console.log('🔍 getUserAvatar - User data from Railway:', user);
                         if (user && user.currentCharacter) {
+                            console.log('🔍 getUserAvatar - Current character ID:', user.currentCharacter);
                             // Find character in database to get the correct emoji
                             const character = characterDatabase.find(char => char.id === user.currentCharacter);
+                            console.log('🔍 getUserAvatar - Found character:', character);
                             if (character) {
                                 console.log('✅ Got avatar from Railway API:', character.icon);
                                 return character.icon;
+                            } else {
+                                console.log('❌ Character not found in database for ID:', user.currentCharacter);
                             }
+                        } else {
+                            console.log('❌ No currentCharacter found for user:', username);
                         }
                     }
                 }
@@ -4090,19 +4113,23 @@
             try {
                 const mappings = await getUsernameMappings();
                 const userEmail = mappings[username];
+                console.log('🔍 getUserAvatar - Local mappings for', username, ':', userEmail);
                 
                 if (userEmail) {
                     // Get user's character data from local storage
                     const userStorageKey = `characterData_${userEmail}`;
                     const savedData = localStorage.getItem(userStorageKey);
+                    console.log('🔍 getUserAvatar - Local storage data:', savedData);
                     
                     if (savedData) {
                         try {
                             const characterData = JSON.parse(savedData);
                             const userCharacter = characterData.currentCharacter || 'kitty';
+                            console.log('🔍 getUserAvatar - User character from local storage:', userCharacter);
                             
                             // Find character in database to get the correct emoji
                             const character = characterDatabase.find(char => char.id === userCharacter);
+                            console.log('🔍 getUserAvatar - Found character in local fallback:', character);
                             if (character) {
                                 console.log('⚠️ Got avatar from local storage (fallback):', character.icon);
                                 return character.icon;
@@ -4350,7 +4377,7 @@
             populateAllCharacters();
         });
 
-        function selectCharacter(characterName) {
+        async function selectCharacter(characterName) {
             if (!isLoggedIn) {
                 alert('Please login first to select characters.');
                 return;
@@ -4369,7 +4396,7 @@
             populateAllCharacters();
             
             // Save character data
-            saveCharacterData();
+            await saveCharacterData();
             
             alert(`🎮 ${characterName.charAt(0).toUpperCase() + characterName.slice(1)} selected!\n\nYour avatar has been updated to ${characterName}!`);
             
@@ -4402,7 +4429,7 @@
             });
         }
 
-        function purchaseCharacter(characterName) {
+        async function purchaseCharacter(characterName) {
             if (!isLoggedIn) {
                 alert('Please login first to purchase characters.');
                 return;
@@ -4480,7 +4507,7 @@
                         selectBtn.className = 'xp-button';
                         selectBtn.id = 'characterSelectBtn';
                         selectBtn.textContent = 'Select';
-                        selectBtn.onclick = () => selectCharacter(characterName);
+                        selectBtn.onclick = () => selectCharacter(characterName).catch(console.error);
                         modalButtons.appendChild(selectBtn);
                         
                         // Add Gift button with proper ID
@@ -4493,7 +4520,7 @@
                     }
                     
                     // Save character data
-                    saveCharacterData();
+                    await saveCharacterData();
                     
                     alert(`✅ Purchase Successful!\n\n${character.name} character unlocked!\n\nRemaining Credits: ${gameCredits} GC`);
                 }
@@ -4502,7 +4529,7 @@
             }
         }
 
-        function purchaseCharacterAgain(characterName) {
+        async function purchaseCharacterAgain(characterName) {
             const character = characterDatabase.find(char => char.id === characterName);
             if (!character) return;
             
@@ -4536,7 +4563,7 @@
                 updateInventoryUI();
                 
                 // Save character data
-                saveCharacterData();
+                await saveCharacterData();
                 
                 // Update the character details modal to show new quantity immediately
                 const characterQuantity = inventoryItems.filter(item => 
@@ -5552,18 +5579,39 @@
                         
                         if (newMessageCount > oldMessageCount) {
                             console.log(`🔄 Found ${newMessageCount - oldMessageCount} new messages!`);
+                            console.log('🔄 Old messages:', currentConversation.messages.length);
+                            console.log('🔄 New messages:', updatedConversation.messages.length);
                             
                             // Update the current conversation
                             currentConversation.messages = updatedConversation.messages;
                             currentConversation.lastActivity = updatedConversation.lastActivity;
                             
-                            // Reload the messages display
-                            await loadConversationMessages(currentConversation.id);
+                            console.log('🔄 Updated currentConversation.messages:', currentConversation.messages.length);
                             
-                            // Update conversations list
+                            // Update conversations list first
                             const conversationIndex = conversations.findIndex(conv => conv.id === currentConversation.id);
                             if (conversationIndex !== -1) {
                                 conversations[conversationIndex] = currentConversation;
+                                console.log('🔄 Updated conversations array');
+                            }
+                            
+                            // Clear and reload the messages display
+                            console.log('🔄 About to reload messages display...');
+                            const messagesArea = document.getElementById('dmMessagesArea');
+                            if (messagesArea) {
+                                messagesArea.innerHTML = '';
+                                console.log('🔄 Cleared messages area');
+                                
+                                // Reload all messages
+                                for (const message of currentConversation.messages) {
+                                    console.log('🔄 Creating message element for:', message.content);
+                                    const messageElement = await createChatMessageElement(message);
+                                    messagesArea.appendChild(messageElement);
+                                }
+                                
+                                // Scroll to bottom
+                                messagesArea.scrollTop = messagesArea.scrollHeight;
+                                console.log('🔄 Messages reloaded and scrolled to bottom');
                             }
                             
                             // Refresh conversations list UI
@@ -5871,7 +5919,7 @@
             alert(`💬 Message Received!\n\nFrom: ${item.sender}\n\nMessage: "${item.message}"`);
         }
 
-        function acceptCharacterGift(item) {
+        async function acceptCharacterGift(item) {
             const character = item.itemData;
             
             // Find the character ID from the character database
@@ -5881,7 +5929,7 @@
             // Add character to owned characters
             if (!ownedCharacters.includes(characterId)) {
                 ownedCharacters.push(characterId);
-                saveCharacterData();
+                await saveCharacterData();
                 updateCharacterCardStatuses();
             }
             
@@ -5996,12 +6044,12 @@
             alert(`❌ Gift rejected! The character has been returned to ${sender}'s inventory.`);
         }
 
-        function claimCreditsGift(item) {
+        async function claimCreditsGift(item) {
             const creditsAmount = item.itemData.amount;
             
             // Add credits to user's account
             gameCredits += creditsAmount;
-            saveCharacterData();
+            await saveCharacterData();
             
             // Update credits display
             document.getElementById('creditsAmount').textContent = gameCredits;
