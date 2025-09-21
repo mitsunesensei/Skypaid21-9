@@ -3846,29 +3846,7 @@
                     console.log('❌ Railway API returned error:', response.status, response.statusText);
                 }
             } catch (error) {
-                console.log('⚠️ Railway search failed, trying fallback:', error.message);
-            }
-            
-            // Fallback: Search local username mappings
-            try {
-                const mappings = await getUsernameMappings();
-                const localUsers = Object.keys(mappings).filter(username => 
-                username.toLowerCase().includes(searchTerm)
-            );
-            
-                console.log('📱 Local search found:', localUsers);
-                
-                if (localUsers.length > 0) {
-                userResultsList.innerHTML = '';
-                    localUsers.forEach(username => {
-                    const userCard = createUserCard(username);
-                    userResultsList.appendChild(userCard);
-                });
-                    userSearchResults.style.display = 'block';
-                    return;
-                }
-            } catch (error) {
-                console.error('❌ Local search failed:', error);
+                console.log('⚠️ Railway search failed:', error.message);
             }
             
             // No users found
@@ -4763,29 +4741,7 @@
                     }
                 }
             } catch (error) {
-                console.log('⚠️ DM Railway search failed, trying fallback:', error.message);
-            }
-            
-            // Fallback: Search local username mappings
-            try {
-                const mappings = await getUsernameMappings();
-                const localUsers = Object.keys(mappings).filter(username => 
-                    username.toLowerCase().includes(searchTerm)
-                );
-                
-                console.log('📱 DM Local search found:', localUsers);
-                
-                if (localUsers.length > 0) {
-                    recipientList.innerHTML = '';
-                    localUsers.forEach(username => {
-                        const recipientCard = createRecipientCard(username);
-                        recipientList.appendChild(recipientCard);
-                    });
-                    recipientResults.style.display = 'block';
-                    return;
-                }
-            } catch (error) {
-                console.error('❌ DM Local search failed:', error);
+                console.log('⚠️ DM Railway search failed:', error.message);
             }
             
             // No users found
@@ -5753,29 +5709,7 @@
                     }
                 }
             } catch (error) {
-                console.log('⚠️ Gift Railway search failed, trying fallback:', error.message);
-            }
-            
-            // Fallback: Search local username mappings
-            try {
-                const mappings = await getUsernameMappings();
-                const localUsers = Object.keys(mappings).filter(username => 
-                    username.toLowerCase().includes(searchTerm)
-                );
-                
-                console.log('📱 Gift Local search found:', localUsers);
-                
-                if (localUsers.length > 0) {
-                    recipientList.innerHTML = '';
-                    localUsers.forEach(username => {
-                        const recipientCard = createGiftRecipientCard(username);
-                        recipientList.appendChild(recipientCard);
-                    });
-                    recipientResults.style.display = 'block';
-                    return;
-                }
-            } catch (error) {
-                console.error('❌ Gift Local search failed:', error);
+                console.log('⚠️ Gift Railway search failed:', error.message);
             }
             
             // No users found
