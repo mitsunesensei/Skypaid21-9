@@ -184,25 +184,64 @@ app.get('/api/users/search', async (req, res) => {
     try {
         const { query } = req.query;
         
+        console.log('🔍 User search request:', query);
+        
         if (!query) {
             return res.json({ success: true, users: [] });
         }
 
-        const users = await Database.read('users');
-        const matchingUsers = Object.values(users)
-            .filter(user => user.username.toLowerCase().includes(query.toLowerCase()))
-            .map(user => ({
-                id: user.id,
-                username: user.username,
-                currentCharacter: user.currentCharacter,
-                lastLogin: user.lastLogin
+        // Search PostgreSQL database for users
+        const client = await pool.connect();
+        try {
+            const result = await client.query(
+                'SELECT id, username, email, created_at FROM users WHERE username ILIKE $1 ORDER BY username',
+                [`%${query}%`]
+            );
+            
+            const users = result.rows.map(row => ({
+                id: row.id,
+                username: row.username,
+                email: row.email,
+                createdAt: row.created_at
             }));
-
-        res.json({ success: true, users: matchingUsers });
+            
+            console.log('✅ Found users in PostgreSQL:', users.length);
+            res.json({ success: true, users: users });
+            
+        } finally {
+            client.release();
+        }
 
     } catch (error) {
-        console.error('User search error:', error);
+        console.error('❌ User search error:', error);
         res.status(500).json({ success: false, error: 'Search failed' });
+    }
+});
+
+// Debug endpoint to check all users in database
+app.get('/api/debug/users', async (req, res) => {
+    try {
+        const client = await pool.connect();
+        try {
+            const result = await client.query('SELECT id, username, email, created_at FROM users ORDER BY created_at DESC');
+            
+            console.log('📊 All users in database:', result.rows.length);
+            result.rows.forEach(user => {
+                console.log(`👤 User: ${user.username} (${user.email}) - Created: ${user.created_at}`);
+            });
+            
+            res.json({ 
+                success: true, 
+                totalUsers: result.rows.length,
+                users: result.rows 
+            });
+            
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error('❌ Debug users error:', error);
+        res.status(500).json({ success: false, error: 'Debug failed' });
     }
 });
 
