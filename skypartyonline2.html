@@ -5317,17 +5317,44 @@
             console.log('🔍 getOtherUserInConversation - Current username:', currentUsername);
             console.log('🔍 getOtherUserInConversation - Conversation:', conversation);
             console.log('🔍 getOtherUserInConversation - Participants:', conversation.participants);
+            console.log('🔍 getOtherUserInConversation - OtherParticipant:', conversation.otherParticipant);
             
-            if (!conversation.participants || !Array.isArray(conversation.participants)) {
-                console.error('❌ Invalid participants array:', conversation.participants);
-                return null;
+            // Railway API format - use otherParticipant field if available
+            if (conversation.otherParticipant) {
+                console.log('✅ Using Railway otherParticipant:', conversation.otherParticipant);
+                return conversation.otherParticipant;
             }
             
-            // Handle both Railway API format and local format
-            const otherUser = conversation.participants.find(user => user !== currentUsername);
-            console.log('🔍 getOtherUserInConversation - Other user:', otherUser);
+            // Local format - find from participants array
+            if (conversation.participants && Array.isArray(conversation.participants)) {
+                // Filter out invalid participants (numbers, empty strings, etc.)
+                const validParticipants = conversation.participants.filter(p => 
+                    typeof p === 'string' && p.trim() !== '' && p !== currentUsername
+                );
+                
+                console.log('🔍 Valid participants after filtering:', validParticipants);
+                
+                if (validParticipants.length > 0) {
+                    const otherUser = validParticipants[0]; // Take the first valid participant
+                    console.log('✅ Using local participants array:', otherUser);
+                    return otherUser;
+                } else {
+                    console.error('❌ No valid participants found after filtering');
+                    // Try to extract from conversation ID as fallback
+                    const convId = conversation.id;
+                    if (convId && convId.includes('_')) {
+                        const parts = convId.split('_');
+                        const otherUser = parts.find(part => part !== currentUsername && part.trim() !== '');
+                        if (otherUser) {
+                            console.log('✅ Using conversation ID fallback:', otherUser);
+                            return otherUser;
+                        }
+                    }
+                }
+            }
             
-            return otherUser;
+            console.error('❌ No valid participant data found:', conversation);
+            return null;
         }
 
         function createConversationId(user1, user2) {
