@@ -1194,7 +1194,13 @@ async function createTables() {
             ('robot', 'Robot', '🤖', 'An advanced AI robot companion.', 300, 'uncommon', 'tech'),
             ('ninja', 'Ninja', '🥷', 'A stealthy ninja warrior.', 400, 'uncommon', 'warrior'),
             ('wizard', 'Wizard', '🧙', 'A wise wizard with magical powers.', 600, 'rare', 'magic'),
-            ('pirate', 'Pirate', '🏴‍☠️', 'A swashbuckling pirate adventurer.', 350, 'uncommon', 'adventure')
+            ('pirate', 'Pirate', '🏴‍☠️', 'A swashbuckling pirate adventurer.', 350, 'uncommon', 'adventure'),
+            ('bear', 'Bear', '🐻', 'A strong and cuddly bear companion.', 250, 'common', 'animal'),
+            ('unicorn', 'Unicorn', '🦄', 'A magical unicorn with healing powers.', 800, 'epic', 'fantasy'),
+            ('rabbit', 'Rabbit', '🐰', 'A quick and agile rabbit friend.', 200, 'common', 'animal'),
+            ('fox', 'Fox', '🦊', 'A clever and cunning fox.', 300, 'uncommon', 'animal'),
+            ('owl', 'Owl', '🦉', 'A wise owl with night vision.', 400, 'uncommon', 'animal'),
+            ('wolf', 'Wolf', '🐺', 'A loyal wolf pack leader.', 450, 'uncommon', 'animal')
             ON CONFLICT (id) DO NOTHING
         `);
         

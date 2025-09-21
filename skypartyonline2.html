@@ -2065,6 +2065,102 @@
         let currentUser = '';
         let isActivated = false;
 
+        // Character System Variables
+        let currentCharacter = 'kitty';
+        let ownedCharacters = ['kitty'];
+
+        // Character Database - All Available Characters
+        let characterDatabase = [
+            { id: 'kitty', name: 'Kitty', icon: '🐱', price: 0, description: 'A cute and friendly kitty character. Perfect for beginners!', owned: true },
+            { id: 'dragon', name: 'Dragon', icon: '🐉', price: 500, description: 'A powerful dragon with mystical abilities.', owned: false },
+            { id: 'robot', name: 'Robot', icon: '🤖', price: 300, description: 'An advanced AI robot companion.', owned: false },
+            { id: 'ninja', name: 'Ninja', icon: '🥷', price: 400, description: 'A stealthy ninja warrior.', owned: false },
+            { id: 'wizard', name: 'Wizard', icon: '🧙', price: 600, description: 'A wise wizard with magical powers.', owned: false },
+            { id: 'pirate', name: 'Pirate', icon: '🏴‍☠️', price: 350, description: 'A swashbuckling pirate adventurer.', owned: false },
+            { id: 'bear', name: 'Bear', icon: '🐻', price: 250, description: 'A strong and cuddly bear companion.', owned: false },
+            { id: 'unicorn', name: 'Unicorn', icon: '🦄', price: 800, description: 'A magical unicorn with healing powers.', owned: false },
+            { id: 'rabbit', name: 'Rabbit', icon: '🐰', price: 200, description: 'A quick and agile rabbit friend.', owned: false },
+            { id: 'fox', name: 'Fox', icon: '🦊', price: 300, description: 'A clever and cunning fox.', owned: false },
+            { id: 'owl', name: 'Owl', icon: '🦉', price: 400, description: 'A wise owl with night vision.', owned: false },
+            { id: 'wolf', name: 'Wolf', icon: '🐺', price: 450, description: 'A loyal wolf pack leader.', owned: false }
+        ];
+
+        // Character System Functions
+        function updateCharacterDatabase() {
+            // Update owned status for all characters
+            characterDatabase.forEach(character => {
+                character.owned = ownedCharacters.includes(character.id);
+            });
+        }
+
+        function loadCharacterData() {
+            if (!currentUser) return;
+            
+            // Load character data from local storage
+            const characterData = localStorage.getItem(`characterData_${currentUser}`);
+            if (characterData) {
+                try {
+                    const data = JSON.parse(characterData);
+                    currentCharacter = data.currentCharacter || 'kitty';
+                    ownedCharacters = data.ownedCharacters || ['kitty'];
+                    gameCredits = data.gameCredits || 150;
+                    
+                    console.log('✅ Loaded character data:', { currentCharacter, ownedCharacters, gameCredits });
+                } catch (error) {
+                    console.error('Error loading character data:', error);
+                    // Reset to defaults on error
+                    currentCharacter = 'kitty';
+                    ownedCharacters = ['kitty'];
+                    gameCredits = 150;
+                }
+            } else {
+                // Set defaults for new users
+                currentCharacter = 'kitty';
+                ownedCharacters = ['kitty'];
+                gameCredits = 150;
+            }
+            
+            // Update character database with ownership status
+            updateCharacterDatabase();
+        }
+
+        async function saveCharacterData() {
+            if (!currentUser) return;
+            
+            const characterData = {
+                currentCharacter: currentCharacter,
+                ownedCharacters: ownedCharacters,
+                gameCredits: gameCredits,
+                lastUpdated: new Date().toISOString()
+            };
+            
+            // Save to local storage
+            localStorage.setItem(`characterData_${currentUser}`, JSON.stringify(characterData));
+            
+            // Save to Railway database if logged in
+            if (currentUserId) {
+                await updateUserData(characterData);
+            }
+            
+            console.log('✅ Saved character data:', characterData);
+        }
+
+        function updateAvatar() {
+            const character = characterDatabase.find(char => char.id === currentCharacter);
+            const avatarEmoji = character ? character.icon : '🐱';
+            
+            // Update all avatar displays
+            const userInfoAvatar = document.getElementById('userInfoAvatar');
+            if (userInfoAvatar) {
+                userInfoAvatar.textContent = avatarEmoji;
+            }
+            
+            // Store in localStorage for quick access
+            localStorage.setItem('userAvatar', avatarEmoji);
+            
+            console.log('🔄 Updated avatar to:', avatarEmoji, 'for character:', currentCharacter);
+        }
+
         // Username-Email mapping functions
         async function storeUsernameMapping(username, email) {
             const mappings = await getUsernameMappings();
