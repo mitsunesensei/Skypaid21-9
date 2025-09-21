@@ -2193,6 +2193,67 @@
         const RAILWAY_API_URL = 'https://skyparty-desktop-production.up.railway.app'; // Railway API Server
         let currentUserId = null; // Store current user ID from Railway
         
+        // Login persistence functions
+        async function saveLoginState(userData) {
+            try {
+                await saveData('loginState', {
+                    isLoggedIn: true,
+                    userId: userData.id,
+                    username: userData.username,
+                    email: userData.email,
+                    loginTime: new Date().toISOString()
+                });
+                console.log('✅ Login state saved successfully');
+            } catch (error) {
+                console.error('❌ Failed to save login state:', error);
+            }
+        }
+        
+        async function restoreLoginState() {
+            try {
+                const loginState = await loadData('loginState');
+                console.log('Checking login state:', loginState);
+                
+                if (loginState && loginState.isLoggedIn && loginState.username && loginState.email) {
+                    console.log('Found valid saved login state, restoring...');
+                    
+                    // Set global variables
+                    currentUser = loginState.email;
+                    currentUserId = loginState.userId;
+                    isLoggedIn = true;
+                    
+                    // Update UI to logged-in state
+                    updateUIForLoggedInUser(loginState.username);
+                    
+                    console.log('✅ Login state restored successfully for:', loginState.username);
+                } else {
+                    console.log('No valid saved login state found, staying logged out');
+                    // Clear any corrupted login state
+                    if (loginState) {
+                        console.log('Clearing corrupted login state');
+                        await clearLoginState();
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Failed to restore login state:', error);
+                // Clear corrupted login state on error
+                try {
+                    await clearLoginState();
+                } catch (clearError) {
+                    console.error('❌ Failed to clear corrupted login state:', clearError);
+                }
+            }
+        }
+        
+        async function clearLoginState() {
+            try {
+                await saveData('loginState', null);
+                console.log('✅ Login state cleared');
+            } catch (error) {
+                console.error('❌ Failed to clear login state:', error);
+            }
+        }
+
         // ===== RAILWAY API FUNCTIONS =====
         
         // Test Railway connection
@@ -3171,6 +3232,9 @@
                         gameCredits = userData.gameCredits || 150;
                     }
                     
+                    // Save login state for persistence
+                    await saveLoginState(user);
+                    
                     // Update UI to show logged in state
                     updateUIForLoggedInUser(user.username);
                     
@@ -4145,6 +4209,9 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize UI to logged-out state first
             initializeUI();
+            
+            // Restore login state if user was previously logged in
+            restoreLoginState();
             
             // Test Railway connection on app load
             testRailwayConnection().then(isConnected => {
@@ -6186,54 +6253,58 @@
             document.getElementById("logoutModal").style.display = "none";
         }
 
-        function confirmLogout() {
+        async function confirmLogout() {
             // Hide modal
             closeLogoutModal();
 
-            // Perform actual logout
-            auth.signOut()
-                .then(() => {
-                    // Reset activation UI to unactivated state
-                    document.querySelector('.title-bar-text').textContent = 'SkyParty (Unactivated)';
-                    
-                    // Re-enable activation code boxes
-                    for (let i = 1; i <= 4; i++) {
-                        const box = document.getElementById(`activationCode${i}`);
-                        if (box) {
-                            box.classList.remove('activated');
-                            box.disabled = false;
-                            box.value = '';
-                        }
-                    }
-                    
-                    // Show activate button and hide activation status
-                    const activateBtn = document.getElementById('activateBtn');
-                    const activationStatus = document.getElementById('activationStatus');
-                    if (activateBtn) activateBtn.style.display = 'block';
-                    if (activationStatus) activationStatus.style.display = 'none';
-                    
-                    // Show activation warning
-                    const activationWarning = document.getElementById('activationWarning');
-                    if (activationWarning) activationWarning.style.display = 'block';
-                    
-                    // Update license information
-                    const licenseStatus = document.getElementById('licenseStatus');
-                    const licenseType = document.getElementById('licenseType');
-                    const licenseDays = document.getElementById('licenseDays');
-                    if (licenseStatus) {
-                        licenseStatus.textContent = 'Unactivated';
-                        licenseStatus.style.color = '#dc3545';
-                    }
-                    if (licenseType) licenseType.textContent = 'Evaluation (Limited Features)';
-                    if (licenseDays) licenseDays.textContent = '30 days';
-                    
-                    // Force switch to login panel
-                    showSection('login');
-                })
-                .catch((error) => {
-                    console.error('Logout error:', error);
-                    alert('Error logging out: ' + error.message);
-                });
+            // Clear login state
+            await clearLoginState();
+            
+            // Reset global variables
+            currentUser = '';
+            currentUserId = null;
+            isLoggedIn = false;
+            gameCredits = 0;
+            isActivated = false;
+            
+            // Reset activation UI to unactivated state
+            document.querySelector('.title-bar-text').textContent = 'SkyParty (Unactivated)';
+            
+            // Re-enable activation code boxes
+            for (let i = 1; i <= 4; i++) {
+                const box = document.getElementById(`activationCode${i}`);
+                if (box) {
+                    box.classList.remove('activated');
+                    box.disabled = false;
+                    box.value = '';
+                }
+            }
+            
+            // Show activate button and hide activation status
+            const activateBtn = document.getElementById('activateBtn');
+            const activationStatus = document.getElementById('activationStatus');
+            if (activateBtn) activateBtn.style.display = 'block';
+            if (activationStatus) activationStatus.style.display = 'none';
+            
+            // Show activation warning
+            const activationWarning = document.getElementById('activationWarning');
+            if (activationWarning) activationWarning.style.display = 'block';
+            
+            // Update license information
+            const licenseStatus = document.getElementById('licenseStatus');
+            const licenseType = document.getElementById('licenseType');
+            const licenseDays = document.getElementById('licenseDays');
+            if (licenseStatus) {
+                licenseStatus.textContent = 'Unactivated';
+                licenseStatus.style.color = '#dc3545';
+            }
+            if (licenseType) licenseType.textContent = 'Evaluation (Limited Features)';
+            if (licenseDays) licenseDays.textContent = '30 days';
+            
+            // Reset UI to logged-out state
+            initializeUI();
+            
+            console.log('✅ Logout successful');
         }
 
         // Universal Custom Popup System
