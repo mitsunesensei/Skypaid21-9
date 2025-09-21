@@ -3972,6 +3972,8 @@
             const userSearchResults = document.getElementById('userSearchResults');
             const userResultsList = document.getElementById('userResultsList');
             
+            console.log('🔍 searchUsers called with term:', searchTerm);
+            
             if (searchTerm === '') {
                 userSearchResults.style.display = 'none';
                 return;
@@ -4002,15 +4004,15 @@
                         const uniqueUsernames = [...new Set(result.users.map(user => user.username))];
                         filteredUsers = uniqueUsernames;
                         console.log('👥 Found Railway users:', filteredUsers);
-            } else {
+                    } else {
                         console.log('❌ Railway search returned no users or invalid format:', result);
                     }
                     
                     if (filteredUsers.length > 0) {
-                userResultsList.innerHTML = '';
+                        userResultsList.innerHTML = '';
                         for (const username of filteredUsers) {
                             const userCard = await createUserCard(username);
-                    userResultsList.appendChild(userCard);
+                            userResultsList.appendChild(userCard);
                         }
                         userSearchResults.style.display = 'block';
                         console.log('✅ Showing Railway users in search results');
@@ -4023,6 +4025,7 @@
                 }
             } catch (error) {
                 console.log('⚠️ Railway search failed:', error.message);
+                console.error('Full error:', error);
             }
             
             // No users found
@@ -4383,7 +4386,10 @@
                 return;
             }
             
+            console.log('🎭 Selecting character:', characterName);
             currentCharacter = characterName;
+            
+            // Update avatar immediately
             updateAvatar();
             
             // Update character database
@@ -4397,6 +4403,8 @@
             
             // Save character data
             await saveCharacterData();
+            
+            console.log('✅ Character selected successfully:', characterName);
             
             alert(`🎮 ${characterName.charAt(0).toUpperCase() + characterName.slice(1)} selected!\n\nYour avatar has been updated to ${characterName}!`);
             
