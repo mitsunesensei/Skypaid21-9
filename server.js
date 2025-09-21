@@ -194,7 +194,7 @@ app.get('/api/users/search', async (req, res) => {
         const client = await pool.connect();
         try {
             const result = await client.query(
-                'SELECT id, username, email, created_at FROM users WHERE username ILIKE $1 ORDER BY username',
+                'SELECT id, username, email, currentCharacter, created_at FROM users WHERE username ILIKE $1 ORDER BY username',
                 [`%${query}%`]
             );
             
@@ -202,6 +202,7 @@ app.get('/api/users/search', async (req, res) => {
                 id: row.id,
                 username: row.username,
                 email: row.email,
+                currentCharacter: row.currentcharacter,
                 createdAt: row.created_at
             }));
             
@@ -1011,7 +1012,16 @@ app.put('/api/user/:userId/data', async (req, res) => {
         
         const client = await pool.connect();
         
-        // Update or insert each data type
+        // Update currentCharacter in users table if provided
+        if (data.currentCharacter) {
+            await client.query(
+                'UPDATE users SET currentCharacter = $1 WHERE id = $2',
+                [data.currentCharacter, userId]
+            );
+            console.log(`✅ Updated currentCharacter to ${data.currentCharacter} for user ${userId}`);
+        }
+        
+        // Update or insert each data type in user_data table
         for (const [dataType, dataValue] of Object.entries(data)) {
             await client.query(
                 `INSERT INTO user_data (user_id, data_type, data_value, updated_at) 
@@ -1062,6 +1072,7 @@ async function createTables() {
                 username VARCHAR(50) UNIQUE NOT NULL,
                 email VARCHAR(100) UNIQUE NOT NULL,
                 password_hash VARCHAR(255) NOT NULL,
+                currentCharacter VARCHAR(50) DEFAULT 'kitty',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 last_login TIMESTAMP
             )
