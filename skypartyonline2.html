@@ -5053,13 +5053,21 @@
             
             // Update the conversations array to reflect the new message
             const conversationIndex = conversations.findIndex(conv => conv.id === currentConversation.id);
+            console.log('🔄 Conversation index in array:', conversationIndex);
+            console.log('🔄 Total conversations in array:', conversations.length);
             if (conversationIndex !== -1) {
                 conversations[conversationIndex] = currentConversation;
+                console.log('🔄 Updated conversation in array');
+            } else {
+                console.log('🔄 Conversation not found in array, adding it');
+                conversations.push(currentConversation);
             }
             
             // Clear input and refresh messages
             document.getElementById('dmMessageText').value = '';
+            console.log('🔄 About to call loadConversationMessages with ID:', currentConversation.id);
             await loadConversationMessages(currentConversation.id);
+            console.log('🔄 loadConversationMessages completed');
             
             // Refresh conversations list to update last message
             loadConversations();
