@@ -1139,12 +1139,160 @@ async function createTables() {
             )
         `);
         
+        // Create characters table (master character definitions)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS characters (
+                id VARCHAR(50) PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                icon VARCHAR(10) NOT NULL,
+                description TEXT,
+                price INTEGER DEFAULT 0,
+                rarity VARCHAR(20) DEFAULT 'common',
+                category VARCHAR(50) DEFAULT 'default',
+                unlock_level INTEGER DEFAULT 1,
+                is_active BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        
+        // Create user_characters table (user's owned characters)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS user_characters (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                character_id VARCHAR(50) REFERENCES characters(id) ON DELETE CASCADE,
+                acquired_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                acquired_via VARCHAR(20) DEFAULT 'purchase',
+                quantity INTEGER DEFAULT 1,
+                UNIQUE(user_id, character_id)
+            )
+        `);
+        
+        // Create character_inventory table (detailed inventory tracking)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS character_inventory (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                character_id VARCHAR(50) REFERENCES characters(id) ON DELETE CASCADE,
+                item_name VARCHAR(100) NOT NULL,
+                item_type VARCHAR(50) DEFAULT 'character',
+                icon VARCHAR(10),
+                description TEXT,
+                price INTEGER DEFAULT 0,
+                acquired_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                source VARCHAR(20) DEFAULT 'purchase',
+                quantity INTEGER DEFAULT 1,
+                metadata JSONB
+            )
+        `);
+        
+        // Insert default characters
+        await client.query(`
+            INSERT INTO characters (id, name, icon, description, price, rarity, category) VALUES
+            ('kitty', 'Kitty', '🐱', 'A cute and friendly kitty character. Perfect for beginners!', 0, 'common', 'starter'),
+            ('dragon', 'Dragon', '🐉', 'A powerful dragon with mystical abilities.', 500, 'rare', 'fantasy'),
+            ('robot', 'Robot', '🤖', 'An advanced AI robot companion.', 300, 'uncommon', 'tech'),
+            ('ninja', 'Ninja', '🥷', 'A stealthy ninja warrior.', 400, 'uncommon', 'warrior'),
+            ('wizard', 'Wizard', '🧙', 'A wise wizard with magical powers.', 600, 'rare', 'magic'),
+            ('pirate', 'Pirate', '🏴‍☠️', 'A swashbuckling pirate adventurer.', 350, 'uncommon', 'adventure')
+            ON CONFLICT (id) DO NOTHING
+        `);
+        
         client.release();
         console.log('✅ Database tables created successfully!');
     } catch (error) {
         console.error('❌ Error creating tables:', error.message);
     }
 }
+
+// Character API endpoints
+app.get('/api/characters', async (req, res) => {
+    try {
+        const client = await pool.connect();
+        const result = await client.query(`
+            SELECT id, name, icon, description, price, rarity, category, unlock_level 
+            FROM characters 
+            WHERE is_active = TRUE 
+            ORDER BY price ASC, name ASC
+        `);
+        client.release();
+        
+        res.json({ 
+            success: true, 
+            characters: result.rows 
+        });
+    } catch (error) {
+        console.error('Error fetching characters:', error);
+        res.status(500).json({ success: false, error: 'Failed to fetch characters' });
+    }
+});
+
+app.get('/api/user/:userId/characters', async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const client = await pool.connect();
+        
+        const result = await client.query(`
+            SELECT c.id, c.name, c.icon, c.description, c.price, c.rarity, c.category,
+                   uc.acquired_at, uc.acquired_via, uc.quantity
+            FROM user_characters uc
+            JOIN characters c ON uc.character_id = c.id
+            WHERE uc.user_id = $1 AND c.is_active = TRUE
+            ORDER BY uc.acquired_at DESC
+        `, [userId]);
+        
+        client.release();
+        
+        res.json({ 
+            success: true, 
+            characters: result.rows 
+        });
+    } catch (error) {
+        console.error('Error fetching user characters:', error);
+        res.status(500).json({ success: false, error: 'Failed to fetch user characters' });
+    }
+});
+
+app.post('/api/user/:userId/characters/:characterId', async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const characterId = req.params.characterId;
+        const { acquired_via = 'purchase' } = req.body;
+        
+        const client = await pool.connect();
+        
+        // Check if user already owns this character
+        const existing = await client.query(`
+            SELECT id, quantity FROM user_characters 
+            WHERE user_id = $1 AND character_id = $2
+        `, [userId, characterId]);
+        
+        if (existing.rows.length > 0) {
+            // Update quantity
+            await client.query(`
+                UPDATE user_characters 
+                SET quantity = quantity + 1, acquired_at = CURRENT_TIMESTAMP
+                WHERE user_id = $1 AND character_id = $2
+            `, [userId, characterId]);
+        } else {
+            // Insert new character
+            await client.query(`
+                INSERT INTO user_characters (user_id, character_id, acquired_via)
+                VALUES ($1, $2, $3)
+            `, [userId, characterId, acquired_via]);
+        }
+        
+        client.release();
+        
+        res.json({ 
+            success: true, 
+            message: 'Character added successfully' 
+        });
+    } catch (error) {
+        console.error('Error adding character:', error);
+        res.status(500).json({ success: false, error: 'Failed to add character' });
+    }
+});
 
 // Start server
 async function startServer() {

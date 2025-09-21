@@ -2222,8 +2222,8 @@
                     currentUserId = loginState.userId;
                     isLoggedIn = true;
                     
-                    // Update UI to logged-in state
-                    updateUIForLoggedInUser(loginState.username);
+                    // Update UI to logged-in state (now async)
+                    await updateUIForLoggedInUser(loginState.username);
                     
                     console.log('✅ Login state restored successfully for:', loginState.username);
                 } else {
@@ -2490,6 +2490,50 @@
                 }
             } catch (error) {
                 console.error('❌ Railway update user data error:', error);
+                return false;
+            }
+        }
+        
+        // Load user data from Railway database
+        async function loadUserDataFromRailway() {
+            if (!currentUserId) {
+                console.log('⚠️ No currentUserId, cannot load from Railway');
+                return false;
+            }
+            
+            try {
+                console.log('🔄 Loading user data from Railway for user ID:', currentUserId);
+                const userData = await getUserData();
+                
+                if (userData) {
+                    console.log('✅ Loaded user data from Railway:', userData);
+                    
+                    // Update global variables with Railway data
+                    if (userData.currentCharacter) {
+                        currentCharacter = userData.currentCharacter;
+                        console.log('🔄 Set currentCharacter from Railway:', currentCharacter);
+                    }
+                    
+                    if (userData.ownedCharacters && Array.isArray(userData.ownedCharacters)) {
+                        ownedCharacters = userData.ownedCharacters;
+                        console.log('🔄 Set ownedCharacters from Railway:', ownedCharacters);
+                    }
+                    
+                    if (typeof userData.gameCredits === 'number') {
+                        gameCredits = userData.gameCredits;
+                        console.log('🔄 Set gameCredits from Railway:', gameCredits);
+                    }
+                    
+                    // Update character database
+                    updateCharacterDatabase();
+                    
+                    return true;
+                } else {
+                    console.log('⚠️ No user data found on Railway, using defaults');
+                    return false;
+                }
+            } catch (error) {
+                console.error('❌ Error loading user data from Railway:', error);
                 return false;
             }
         }
@@ -3224,12 +3268,26 @@
         }
         
         // Update UI for Railway login (copies Firebase auth state listener logic)
-        function updateUIForLoggedInUser(username) {
+        async function updateUIForLoggedInUser(username) {
             console.log('Updating UI for logged in user:', username);
             
+            // Load character data and credits from Railway database first
+            console.log('🔄 Loading user data from Railway...');
+            await loadUserDataFromRailway();
+            
+            // Load character data from local storage as fallback
+            console.log('🔄 Loading character data from local storage as fallback...');
+            loadCharacterData();
+            
+            // Update avatar based on current character
+            updateAvatar();
+            
             // Update user info box (avatar and status)
+            const character = characterDatabase.find(char => char.id === currentCharacter);
+            const avatarEmoji = character ? character.icon : '🐱';
+            
             document.getElementById('userInfo').innerHTML = `
-                <div class="user-info-avatar logged-in" id="userInfoAvatar">${localStorage.getItem('userAvatar') || '👤'}</div>
+                <div class="user-info-avatar logged-in" id="userInfoAvatar">${avatarEmoji}</div>
                 <div><strong>User:</strong> ${username}</div>
                 <div><strong>Status:</strong> Online</div>
             `;
@@ -3264,7 +3322,8 @@
                 sidebarTitle.textContent = 'Navigation';
             }
             
-            // Update credits display
+            // Update credits display with actual loaded data
+            console.log('🔄 Updating credits display with:', gameCredits);
             document.getElementById('creditsAmount').textContent = gameCredits;
             document.getElementById('gcBalance').textContent = gameCredits + ' GC';
             document.getElementById('creditsAmountSidebar').textContent = gameCredits + ' GC';
@@ -3278,6 +3337,7 @@
             // Update character card statuses for the logged-in user
             setTimeout(() => {
                 updateCharacterCardStatuses();
+                populateAllCharacters(); // Refresh character display
             }, 100);
             
             // Update DM notification dot for the logged-in user
@@ -3296,7 +3356,7 @@
                 initializeInventory();
             }, 400);
             
-            console.log('User successfully signed in via Railway:', username);
+            console.log('✅ User successfully signed in via Railway:', username, 'with', gameCredits, 'credits and character:', currentCharacter);
         }
         
         async function performLogin(usernameOrEmail, password) {
@@ -3329,8 +3389,8 @@
                     // Save login state for persistence
                     await saveLoginState(user);
                     
-                    // Update UI to show logged in state
-                    updateUIForLoggedInUser(user.username);
+                    // Update UI to show logged in state (now async)
+                    await updateUIForLoggedInUser(user.username);
                     
                     // Clear form
                     document.getElementById('username').value = '';
@@ -4709,6 +4769,21 @@
         let selectedDMRecipient = null;
         let currentConversation = null;
         let conversations = [];
+        
+        // Function to open the DM modal
+        function openDM() {
+            console.log('📱 Opening DM modal...');
+            const dmModal = document.getElementById('dmModal');
+            if (dmModal) {
+                dmModal.style.display = 'block';
+                console.log('📱 DM modal opened');
+                
+                // Load conversations when opening DM
+                loadConversations().catch(console.error);
+            } else {
+                console.error('❌ DM modal not found');
+            }
+        }
 
         function closeDMModal() {
             document.getElementById('dmModal').style.display = 'none';
@@ -5353,50 +5428,6 @@
             return null;
         }
 
-        async function getOtherUserInConversation(conversation) {
-            const currentUsername = await getCurrentUsername();
-            console.log('🔍 getOtherUserInConversation - Current username:', currentUsername);
-            console.log('🔍 getOtherUserInConversation - Conversation:', conversation);
-            console.log('🔍 getOtherUserInConversation - Participants:', conversation.participants);
-            console.log('🔍 getOtherUserInConversation - OtherParticipant:', conversation.otherParticipant);
-            
-            // Railway API format - use otherParticipant field if available
-            if (conversation.otherParticipant) {
-                console.log('✅ Using Railway otherParticipant:', conversation.otherParticipant);
-                return conversation.otherParticipant;
-            }
-            
-            // Local format - find from participants array
-            if (conversation.participants && Array.isArray(conversation.participants)) {
-                // Filter out invalid participants (numbers, empty strings, etc.)
-                const validParticipants = conversation.participants.filter(p => 
-                    typeof p === 'string' && p.trim() !== '' && p !== currentUsername
-                );
-                
-                console.log('🔍 Valid participants after filtering:', validParticipants);
-                
-                if (validParticipants.length > 0) {
-                    const otherUser = validParticipants[0]; // Take the first valid participant
-                    console.log('✅ Using local participants array:', otherUser);
-                    return otherUser;
-                } else {
-                    console.error('❌ No valid participants found after filtering');
-                    // Try to extract from conversation ID as fallback
-                    const convId = conversation.id;
-                    if (convId && convId.includes('_')) {
-                        const parts = convId.split('_');
-                        const otherUser = parts.find(part => part !== currentUsername && part.trim() !== '');
-                        if (otherUser) {
-                            console.log('✅ Using conversation ID fallback:', otherUser);
-                            return otherUser;
-                        }
-                    }
-                }
-            }
-            
-            console.error('❌ No valid participant data found:', conversation);
-            return null;
-        }
 
         function createConversationId(user1, user2) {
             // Create a consistent conversation ID regardless of order
@@ -5637,6 +5668,50 @@
             // For now, we'll call it when loading conversations
             loadConversations();
             updateDMNotificationDot();
+        }
+
+        // Get the other user in a conversation (not the current user)
+        async function getOtherUserInConversation(conversation) {
+            console.log('🔍 getOtherUserInConversation called with:', conversation);
+            
+            if (!conversation || !conversation.participants || !Array.isArray(conversation.participants)) {
+                console.error('❌ Invalid conversation object:', conversation);
+                return 'Unknown User';
+            }
+            
+            const currentUsername = await getCurrentUsername();
+            console.log('🔍 Current username:', currentUsername);
+            console.log('🔍 Conversation participants:', conversation.participants);
+            
+            // Find the participant that is NOT the current user
+            const otherUser = conversation.participants.find(participant => {
+                // Handle different data formats
+                if (typeof participant === 'string') {
+                    return participant !== currentUsername;
+                } else if (typeof participant === 'object' && participant.username) {
+                    return participant.username !== currentUsername;
+                } else if (typeof participant === 'number') {
+                    // Handle case where participant is a user ID
+                    return participant !== currentUserId;
+                }
+                return false;
+            });
+            
+            console.log('🔍 Found other user:', otherUser);
+            
+            // Return the other user, handling different formats
+            if (typeof otherUser === 'string') {
+                return otherUser;
+            } else if (typeof otherUser === 'object' && otherUser.username) {
+                return otherUser.username;
+            } else if (typeof otherUser === 'number') {
+                // If we have a user ID, try to get the username
+                // For now, return the ID as string - this could be improved
+                return `User${otherUser}`;
+            }
+            
+            console.error('❌ Could not determine other user in conversation:', conversation);
+            return 'Unknown User';
         }
 
         // Function to clean up corrupted read status data
@@ -6390,10 +6465,28 @@
             }
 
             // Add owned characters that are not already in inventory
+            console.log('🔄 Loading inventory - ownedCharacters:', ownedCharacters);
+            console.log('🔄 Loading inventory - current inventoryItems:', inventoryItems.map(item => ({name: item.name, type: item.type})));
+            
             ownedCharacters.forEach(characterId => {
-                const alreadyInInventory = inventoryItems.some(item => 
-                    item.type === 'character' && item.name.toLowerCase().replace(/\s+/g, '') === characterId
-                );
+                console.log('🔄 Checking character:', characterId);
+                
+                // Check if character is already in inventory using multiple matching strategies
+                const alreadyInInventory = inventoryItems.some(item => {
+                    if (item.type !== 'character') return false;
+                    
+                    // Strategy 1: Match by character ID (most reliable)
+                    const itemCharacterId = item.name.toLowerCase().replace(/\s+/g, '');
+                    if (itemCharacterId === characterId) return true;
+                    
+                    // Strategy 2: Match by exact name
+                    const character = characterDatabase.find(char => char.id === characterId);
+                    if (character && item.name === character.name) return true;
+                    
+                    return false;
+                });
+                
+                console.log('🔄 Character', characterId, 'already in inventory:', alreadyInInventory);
                 
                 if (!alreadyInInventory) {
                     let character;
@@ -6411,6 +6504,7 @@
                     }
                     
                     if (character) {
+                        console.log('✅ Adding character to inventory:', character.name);
                         inventoryItems.push({
                             id: `character_${characterId}_${Date.now()}`,
                             type: 'character',
@@ -6422,7 +6516,11 @@
                             source: characterId === 'kitty' ? 'default' : 'purchase',
                             quantity: 1
                         });
+                    } else {
+                        console.log('❌ Character not found in database:', characterId);
                     }
+                } else {
+                    console.log('⚠️ Character already in inventory:', characterId);
                 }
             });
 
