@@ -4686,6 +4686,9 @@
             document.getElementById('dmWelcomeScreen').style.display = 'flex';
             document.getElementById('dmChatInterface').style.display = 'none';
             currentConversation = null;
+            
+            // Stop checking for new messages when leaving chat
+            stopMessageChecking();
         }
 
         async function showChatInterface(conversationId) {
@@ -4763,6 +4766,9 @@
             console.log('🔄 About to load messages for conversation:', conversationId);
             await loadConversationMessages(conversationId);
             console.log('🔄 Loaded conversation messages');
+            
+            // Start checking for new messages
+            startMessageChecking();
         }
 
         async function loadDMMessages() {
@@ -5502,6 +5508,74 @@
             console.log('Profile DM dot final display:', notificationDot.style.display);
         }
 
+        // Check for new messages periodically
+        let messageCheckInterval = null;
+        
+        function startMessageChecking() {
+            if (messageCheckInterval) {
+                clearInterval(messageCheckInterval);
+            }
+            
+            // Check for new messages every 3 seconds
+            messageCheckInterval = setInterval(async () => {
+                if (currentConversation && currentUserId) {
+                    console.log('🔄 Checking for new messages...');
+                    await refreshCurrentConversation();
+                }
+            }, 3000);
+            
+            console.log('✅ Started message checking interval');
+        }
+        
+        function stopMessageChecking() {
+            if (messageCheckInterval) {
+                clearInterval(messageCheckInterval);
+                messageCheckInterval = null;
+                console.log('⏹️ Stopped message checking interval');
+            }
+        }
+        
+        async function refreshCurrentConversation() {
+            if (!currentConversation || !currentUserId) return;
+            
+            try {
+                console.log('🔄 Refreshing current conversation:', currentConversation.id);
+                
+                // Get updated conversations from Railway
+                const railwayConversations = await getConversationsViaRailway(currentUserId);
+                if (railwayConversations && railwayConversations.length > 0) {
+                    // Find the current conversation in the updated data
+                    const updatedConversation = railwayConversations.find(conv => conv.id === currentConversation.id);
+                    if (updatedConversation) {
+                        const oldMessageCount = currentConversation.messages.length;
+                        const newMessageCount = updatedConversation.messages.length;
+                        
+                        if (newMessageCount > oldMessageCount) {
+                            console.log(`🔄 Found ${newMessageCount - oldMessageCount} new messages!`);
+                            
+                            // Update the current conversation
+                            currentConversation.messages = updatedConversation.messages;
+                            currentConversation.lastActivity = updatedConversation.lastActivity;
+                            
+                            // Reload the messages display
+                            await loadConversationMessages(currentConversation.id);
+                            
+                            // Update conversations list
+                            const conversationIndex = conversations.findIndex(conv => conv.id === currentConversation.id);
+                            if (conversationIndex !== -1) {
+                                conversations[conversationIndex] = currentConversation;
+                            }
+                            
+                            // Refresh conversations list UI
+                            await loadConversations();
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Error refreshing conversation:', error);
+            }
+        }
+        
         function checkForNewMessages() {
             // This function can be called periodically to check for new messages
             // For now, we'll call it when loading conversations
