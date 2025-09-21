@@ -1970,7 +1970,7 @@
                         <div id="dmMessageInput" style="padding: 12px; border-top: 1px solid #d0d0d0; background: white;">
                             <div style="display: flex; gap: 8px; align-items: center;">
                                 <input type="text" class="form-input" id="dmMessageText" placeholder="Type a message..." style="flex: 1; font-size: 11px;" onkeypress="handleMessageKeyPress(event)">
-                                <button class="xp-button primary" onclick="sendChatMessage()" style="padding: 4px 12px; font-size: 10px;">Send</button>
+                                <button class="xp-button primary" onclick="sendChatMessage().catch(console.error)" style="padding: 4px 12px; font-size: 10px;">Send</button>
                             </div>
                         </div>
                     </div>
@@ -2021,7 +2021,7 @@
                 <!-- Action Buttons -->
                 <div class="modal-buttons" style="margin-top: 12px;">
                     <button class="xp-button" onclick="closeNewMessageModal()">Cancel</button>
-                    <button class="xp-button primary" onclick="startNewConversation()" id="startConversationBtn" style="display: none;">Start Conversation</button>
+                    <button class="xp-button primary" onclick="startNewConversation().catch(console.error)" id="startConversationBtn" style="display: none;">Start Conversation</button>
                 </div>
             </div>
         </div>
@@ -4841,7 +4841,7 @@
             // Note: dmInitialMessageText was removed, so no need to clear it
         }
 
-        function startNewConversation() {
+        async function startNewConversation() {
             console.log('=== startNewConversation() CALLED ===');
             
             if (!selectedDMRecipient) {
@@ -4852,7 +4852,7 @@
             console.log('Starting new conversation with:', selectedDMRecipient);
             
             // Get current user's username
-            const currentUsername = getCurrentUsername();
+            const currentUsername = await getCurrentUsername();
             if (!currentUsername) {
                 alert('Error: Could not identify current user.');
                 return;
@@ -4901,7 +4901,7 @@
             }, 100);
         }
 
-        function sendChatMessage() {
+        async function sendChatMessage() {
             if (!currentConversation) {
                 alert('No active conversation.');
                 return;
@@ -4914,7 +4914,7 @@
             }
             
             // Get current user's username
-            const currentUsername = getCurrentUsername();
+            const currentUsername = await getCurrentUsername();
             if (!currentUsername) {
                 alert('Error: Could not identify current user.');
                 return;
@@ -4990,9 +4990,48 @@
         }
 
         // Helper functions
-        function getCurrentUsername() {
-            const mappings = getUsernameMappings();
-            return Object.keys(mappings).find(key => mappings[key] === currentUser);
+        async function getCurrentUsername() {
+            // Try to get username from Railway login state first
+            try {
+                const loginState = await loadData('loginState');
+                if (loginState && loginState.isLoggedIn && loginState.username) {
+                    console.log('✅ Got username from login state:', loginState.username);
+                    return loginState.username;
+                }
+            } catch (error) {
+                console.log('⚠️ Could not load login state:', error);
+            }
+            
+            // Fallback: Try to get from Railway API using currentUserId
+            if (currentUserId) {
+                try {
+                    const response = await fetch(`${RAILWAY_API_URL}/api/user/${currentUserId}/data`);
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.success && result.data && result.data.username) {
+                            console.log('✅ Got username from Railway API:', result.data.username);
+                            return result.data.username;
+                        }
+                    }
+                } catch (error) {
+                    console.log('⚠️ Could not get username from Railway API:', error);
+                }
+            }
+            
+            // Last fallback: Try local mappings (for backward compatibility)
+            try {
+                const mappings = await getUsernameMappings();
+                const username = Object.keys(mappings).find(key => mappings[key] === currentUser);
+                if (username) {
+                    console.log('⚠️ Got username from local mappings (fallback):', username);
+                    return username;
+                }
+            } catch (error) {
+                console.log('⚠️ Could not get username from local mappings:', error);
+            }
+            
+            console.log('❌ Could not identify current user');
+            return null;
         }
 
         function getOtherUserInConversation(conversation) {
