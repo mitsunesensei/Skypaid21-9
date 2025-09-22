@@ -1,33 +1,37 @@
 {
-  "name": "skyparty-desktop",
+  "name": "skyparty-backend",
   "version": "1.0.0",
-  "description": "SkyParty Desktop Game Launcher",
-  "main": "main.js",
+  "description": "SkyParty Backend API Server",
+  "main": "server.js",
   "scripts": {
-    "start": "electron .",
+    "start": "node server.js",
+    "server": "node server.js",
+    "desktop": "electron .",
     "dev": "electron . --dev",
     "build": "electron-builder",
-    "dist": "electron-builder --publish=never",
-    "server": "node server.js"
+    "dist": "electron-builder --publish=never"
   },
   "keywords": [
     "skyparty",
-    "game-launcher",
-    "desktop",
-    "electron"
+    "backend",
+    "api",
+    "game-server"
   ],
   "author": "SkyParty Team",
   "license": "MIT",
   "dependencies": {
-    "cors": "2.8.5",
     "express": "4.18.2",
-    "pg": "8.16.3"
+    "cors": "2.8.5",
+    "pg": "8.16.3",
+    "bcrypt": "^6.0.0",
+    "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
-    "bcrypt": "^6.0.0",
     "electron": "^38.1.2",
-    "electron-builder": "^24.13.3",
-    "jsonwebtoken": "^9.0.2"
+    "electron-builder": "^24.13.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "build": {
     "appId": "com.skyparty.launcher",
