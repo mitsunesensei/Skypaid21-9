@@ -6516,7 +6516,15 @@
             const recipientResults = document.getElementById('giftRecipientResults');
             const recipientList = document.getElementById('giftRecipientList');
             
+            console.log('🎁 Gift Search: Function called with term:', searchTerm);
+            console.log('🎁 Gift Search: DOM elements found:', {
+                searchInput: !!document.getElementById('giftRecipientSearch'),
+                resultsDiv: !!recipientResults,
+                listDiv: !!recipientList
+            });
+            
             if (searchTerm === '') {
+                console.log('🎁 Gift Search: Empty search term, hiding results');
                 recipientResults.style.display = 'none';
                 return;
             }
@@ -6540,18 +6548,29 @@
                     if (result.success && result.users && Array.isArray(result.users)) {
                         filteredUsers = result.users.map(user => user.username);
                         console.log('👥 Gift Found Railway users:', filteredUsers);
+                    } else {
+                        console.log('❌ Gift Railway search: Invalid result format or no users found');
                     }
                     
                     if (filteredUsers.length > 0) {
-                recipientList.innerHTML = '';
-                filteredUsers.forEach(username => {
-                    const recipientCard = createGiftRecipientCard(username);
-                    recipientList.appendChild(recipientCard);
-                });
+                        console.log('🎁 Gift Search: Creating cards for', filteredUsers.length, 'users');
+                        recipientList.innerHTML = '';
+                        
+                        // Create cards for each user (await all async operations)
+                        for (const username of filteredUsers) {
+                            console.log('🎁 Gift Search: Creating card for:', username);
+                            const recipientCard = await createGiftRecipientCard(username);
+                            recipientList.appendChild(recipientCard);
+                        }
+                        
                         recipientResults.style.display = 'block';
                         console.log('✅ Gift Showing Railway users in search results');
                         return;
+                    } else {
+                        console.log('🎁 Gift Search: No users found, showing no results message');
                     }
+                } else {
+                    console.log('❌ Gift Railway search: HTTP error:', response.status, response.statusText);
                 }
             } catch (error) {
                 console.log('⚠️ Gift Railway search failed:', error.message);
