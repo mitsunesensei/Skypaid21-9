@@ -5744,16 +5744,16 @@
                 } else {
                     console.log('⚠️ Railway mailbox failed, using local storage');
                     // Fallback to local storage
-                    const mailboxData = localStorage.getItem(`mailbox_${currentUser}`);
-                    if (mailboxData) {
-                        try {
-                            mailboxItems = JSON.parse(mailboxData);
-                        } catch (error) {
-                            console.error('Error parsing mailbox data:', error);
-                            mailboxItems = [];
-                        }
-                    } else {
-                        mailboxItems = [];
+            const mailboxData = localStorage.getItem(`mailbox_${currentUser}`);
+            if (mailboxData) {
+                try {
+                    mailboxItems = JSON.parse(mailboxData);
+                } catch (error) {
+                    console.error('Error parsing mailbox data:', error);
+                    mailboxItems = [];
+                }
+            } else {
+                mailboxItems = [];
                     }
                 }
             } catch (error) {
