@@ -6541,6 +6541,19 @@
         let currentGiftItem = null;
         let currentCharacterForGift = null;
         
+        // Get current user data
+        function getCurrentUser() {
+            if (!isLoggedIn || !currentUserId) {
+                return null;
+            }
+            
+            return {
+                id: currentUserId,
+                username: currentUser,
+                email: currentUser
+            };
+        }
+        
         // Find user by username
         async function findUserByUsername(username) {
             try {
@@ -6631,8 +6644,8 @@
             console.log('🧪 ownedCharacters:', ownedCharacters);
             console.log('🧪 characterDatabase:', characterDatabase);
             
-            // Try with dragon character as test
-            const testCharacter = 'dragon';
+            // Use the actual selected character instead of hardcoded dragon
+            const testCharacter = currentCharacterForGift || 'dragon';
             console.log('🧪 Testing with character:', testCharacter);
             
             showSimpleGiftPopup(testCharacter);
@@ -6640,15 +6653,23 @@
 
         // Simple gift popup
         function showSimpleGiftPopup(characterName) {
+            console.log('🎁 showSimpleGiftPopup called with characterName:', characterName);
+            console.log('🎁 characterDatabase:', characterDatabase);
+            
             const character = characterDatabase.find(char => char.id === characterName);
+            console.log('🎁 Found character:', character);
+            
             if (!character) {
-                alert('❌ Character not found');
+                console.error('❌ Character not found in database:', characterName);
+                console.error('❌ Available character IDs:', characterDatabase.map(c => c.id));
+                showGiftAlert('❌ Error: Character not found in database!', 'error');
                 return;
             }
             
             // Set the global character for gifting
             currentCharacterForGift = characterName;
             console.log('✅ showSimpleGiftPopup: Set currentCharacterForGift to:', currentCharacterForGift);
+            console.log('✅ Character details:', character.name, character.icon);
 
             // Create popup HTML
             const popupHTML = `
