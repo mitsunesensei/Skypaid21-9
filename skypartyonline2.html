@@ -1137,19 +1137,19 @@
                     
                     <div class="sidebar-section">
                         <div class="sidebar-title" id="sidebarTitle">Account</div>
-                        <div class="sidebar-item active" onclick="showSection('login')" id="loginSidebarItem">👤 Login</div>
-                        <div class="sidebar-item" onclick="showSection('profile')" id="profileSidebarItem" style="display: none;">👤 Profile</div>
-                        <div class="sidebar-item" onclick="showSection('dashboard')">🎮 Game</div>
-                        <div class="sidebar-item" onclick="showSection('shop')">🛒 Shop</div>
-                        <div class="sidebar-item" onclick="showSection('usersearch')">🔍 Search Users</div>
-                        <div class="sidebar-item" onclick="showSection('wallet')">💰 Crypto Wallet</div>
-                        <div class="sidebar-item" onclick="openLogoutModal()" id="logoutBtn" style="display: none;">🚪 Logout</div>
+                        <div class="sidebar-item active" onclick="showSection('login', event)" id="loginSidebarItem">👤 Login</div>
+                        <div class="sidebar-item" onclick="showSection('profile', event)" id="profileSidebarItem" style="display: none;">👤 Profile</div>
+                        <div class="sidebar-item" onclick="showSection('dashboard', event)">🎮 Game</div>
+                        <div class="sidebar-item" onclick="showSection('shop', event)">🛒 Shop</div>
+                        <div class="sidebar-item" onclick="showSection('usersearch', event)">🔍 Search Users</div>
+                        <div class="sidebar-item" onclick="showSection('wallet', event)">💰 Crypto Wallet</div>
+                        <div class="sidebar-item" onclick="logout()" id="logoutBtn" style="display: none;">🚪 Logout</div>
                     </div>
                     
                     <div class="sidebar-section">
                         <div class="sidebar-title">Quick Access</div>
-                        <div class="sidebar-item" onclick="showSection('activation')">🔑 Activation</div>
-                        <div class="sidebar-item" onclick="showSection('earnings')">📊 P2E Earnings</div>
+                        <div class="sidebar-item" onclick="showSection('activation', event)">🔑 Activation</div>
+                        <div class="sidebar-item" onclick="showSection('earnings', event)">📊 P2E Earnings</div>
                         <div class="sidebar-item">⚙️ Settings</div>
                     </div>
                 </div>
@@ -1233,7 +1233,7 @@
                                     💬
                                     <div id="dmNotificationDot" class="notification-dot" style="display: none;"></div>
                                 </div>
-                                <div class="profile-top-button" onclick="showSection('mailbox')" title="Mailbox" style="position: relative;">
+                                <div class="profile-top-button" onclick="showSection('mailbox', event)" title="Mailbox" style="position: relative;">
                                     📮
                                     <div id="mailboxNotificationDot" class="notification-dot" style="display: none;"></div>
                                 </div>
@@ -1243,7 +1243,7 @@
                             </div>
                         </div>
                         
-                        <div class="avatar-box" id="bigProfileAvatar" onclick="showSection('characters')" style="cursor: pointer;" title="Click to change character">
+                        <div class="avatar-box" onclick="showSection('characters', event)" style="cursor: pointer;" title="Click to change character">
                             👤
                         </div>
                         
@@ -1256,7 +1256,7 @@
                                 <span class="profile-button-icon">👥</span>
                                 Friends
                             </button>
-                            <button class="profile-button" onclick="showSection('inventory')">
+                            <button class="profile-button" onclick="showSection('inventory', event)">
                                 <span class="profile-button-icon">🎒</span>
                                 Inventory
                             </button>
@@ -1349,7 +1349,7 @@
                         <div class="wallet-panel">
                             <h3 style="margin-bottom: 12px;">Categories</h3>
                             <div class="game-grid">
-                                <div class="game-card" onclick="showSection('characters')">
+                                <div class="game-card" onclick="showSection('characters', event)">
                                     <div class="game-icon" style="background: linear-gradient(135deg, #4ecdc4, #44a08d);">👥</div>
                                     <div class="game-title">Characters</div>
                                     <div class="game-status">Browse & Buy</div>
@@ -2065,225 +2065,6 @@
         let currentUser = '';
         let isActivated = false;
 
-        // Character System Variables
-        let currentCharacter = 'kitty';
-        let ownedCharacters = ['kitty'];
-
-        // Character Database - All Available Characters
-        let characterDatabase = [
-            { id: 'kitty', name: 'Kitty', icon: '🐱', price: 0, description: 'A cute and friendly kitty character. Perfect for beginners!', owned: true },
-            { id: 'dragon', name: 'Dragon', icon: '🐉', price: 500, description: 'A powerful dragon with mystical abilities.', owned: false },
-            { id: 'robot', name: 'Robot', icon: '🤖', price: 300, description: 'An advanced AI robot companion.', owned: false },
-            { id: 'ninja', name: 'Ninja', icon: '🥷', price: 400, description: 'A stealthy ninja warrior.', owned: false },
-            { id: 'wizard', name: 'Wizard', icon: '🧙', price: 600, description: 'A wise wizard with magical powers.', owned: false },
-            { id: 'pirate', name: 'Pirate', icon: '🏴‍☠️', price: 350, description: 'A swashbuckling pirate adventurer.', owned: false },
-            { id: 'bear', name: 'Bear', icon: '🐻', price: 250, description: 'A strong and cuddly bear companion.', owned: false },
-            { id: 'unicorn', name: 'Unicorn', icon: '🦄', price: 800, description: 'A magical unicorn with healing powers.', owned: false },
-            { id: 'rabbit', name: 'Rabbit', icon: '🐰', price: 200, description: 'A quick and agile rabbit friend.', owned: false },
-            { id: 'fox', name: 'Fox', icon: '🦊', price: 300, description: 'A clever and cunning fox.', owned: false },
-            { id: 'owl', name: 'Owl', icon: '🦉', price: 400, description: 'A wise owl with night vision.', owned: false },
-            { id: 'wolf', name: 'Wolf', icon: '🐺', price: 450, description: 'A loyal wolf pack leader.', owned: false }
-        ];
-
-        // Character System Functions
-        function updateCharacterDatabase() {
-            // Update owned status for all characters
-            characterDatabase.forEach(character => {
-                character.owned = ownedCharacters.includes(character.id);
-            });
-        }
-
-        function loadCharacterData() {
-            if (!currentUser) return;
-            
-            // Load character data from local storage
-            const characterData = localStorage.getItem(`characterData_${currentUser}`);
-            if (characterData) {
-                try {
-                    const data = JSON.parse(characterData);
-                    currentCharacter = data.currentCharacter || 'kitty';
-                    ownedCharacters = data.ownedCharacters || ['kitty'];
-                    gameCredits = data.gameCredits || 150;
-                    
-                    console.log('✅ Loaded character data:', { currentCharacter, ownedCharacters, gameCredits });
-                } catch (error) {
-                    console.error('Error loading character data:', error);
-                    // Reset to defaults on error
-                    currentCharacter = 'kitty';
-                    ownedCharacters = ['kitty'];
-                    gameCredits = 150;
-                }
-            } else {
-                // Set defaults for new users
-                currentCharacter = 'kitty';
-                ownedCharacters = ['kitty'];
-                gameCredits = 150;
-            }
-            
-            // Update character database with ownership status
-            updateCharacterDatabase();
-        }
-
-        async function saveCharacterData() {
-            if (!currentUser) return;
-            
-            const characterData = {
-                currentCharacter: currentCharacter,
-                ownedCharacters: ownedCharacters,
-                gameCredits: gameCredits,
-                lastUpdated: new Date().toISOString()
-            };
-            
-            // Save to local storage
-            localStorage.setItem(`characterData_${currentUser}`, JSON.stringify(characterData));
-            
-            // Save to Railway database if logged in
-            if (currentUserId) {
-                await updateUserData(characterData);
-            }
-            
-            console.log('✅ Saved character data:', characterData);
-        }
-
-        function updateAvatar() {
-            const character = characterDatabase.find(char => char.id === currentCharacter);
-            const avatarEmoji = character ? character.icon : '🐱';
-            
-            // Update ALL avatar displays consistently
-            updateAllAvatarDisplays(avatarEmoji);
-            
-            // Store in localStorage for quick access
-            localStorage.setItem('userAvatar', avatarEmoji);
-            
-            console.log('🔄 Updated avatar to:', avatarEmoji, 'for character:', currentCharacter);
-        }
-
-        function updateAllAvatarDisplays(avatarEmoji) {
-            // 1. Status avatar (user info box)
-            const userInfoAvatar = document.getElementById('userInfoAvatar');
-            if (userInfoAvatar) {
-                userInfoAvatar.textContent = avatarEmoji;
-            }
-            
-            // 2. Profile avatar (main profile section)
-            const profileAvatar = document.getElementById('profileAvatar');
-            if (profileAvatar) {
-                profileAvatar.textContent = avatarEmoji;
-            }
-            
-            // 3. Profile sidebar avatar
-            const profileSidebarAvatar = document.getElementById('profileSidebarAvatar');
-            if (profileSidebarAvatar) {
-                profileSidebarAvatar.textContent = avatarEmoji;
-            }
-            
-            // 4. Big profile avatar (the large avatar in profile section)
-            const bigProfileAvatar = document.getElementById('bigProfileAvatar');
-            if (bigProfileAvatar) {
-                bigProfileAvatar.textContent = avatarEmoji;
-            }
-            
-            // 5. Profile section avatar (alternative ID)
-            const profileSectionAvatar = document.getElementById('profileSectionAvatar');
-            if (profileSectionAvatar) {
-                profileSectionAvatar.textContent = avatarEmoji;
-            }
-            
-            // 6. Any other avatar displays that might exist
-            const allAvatarElements = document.querySelectorAll('[data-avatar="current-user"]');
-            allAvatarElements.forEach(element => {
-                element.textContent = avatarEmoji;
-            });
-            
-            // 7. Update any profile-related avatar elements by class
-            const profileAvatarElements = document.querySelectorAll('.profile-avatar, .user-avatar, .main-avatar, .avatar-box');
-            profileAvatarElements.forEach(element => {
-                element.textContent = avatarEmoji;
-            });
-            
-            console.log('✅ Updated all avatar displays to:', avatarEmoji);
-        }
-
-        // Unified function to get current user's avatar (synchronous)
-        function getCurrentUserAvatar() {
-            const character = characterDatabase.find(char => char.id === currentCharacter);
-            return character ? character.icon : '🐱';
-        }
-
-        // Unified function to get any user's avatar (async, for other users)
-        async function getUserAvatar(username) {
-            // If this is the current user, use synchronous method
-            if (username === await getCurrentUsername()) {
-                return getCurrentUserAvatar();
-            }
-            
-            // For other users, use the existing async method
-            try {
-                const response = await fetch(`${RAILWAY_API_URL}/api/users/search?query=${encodeURIComponent(username)}`);
-                if (response.ok) {
-                    const result = await response.json();
-                    if (result.success && result.users && result.users.length > 0) {
-                        const user = result.users.find(u => u.username === username);
-                        console.log('🔍 getUserAvatar - User data from Railway:', user);
-                        if (user && user.currentCharacter) {
-                            console.log('🔍 getUserAvatar - Current character ID:', user.currentCharacter);
-                            // Find character in database to get the correct emoji
-                            const character = characterDatabase.find(char => char.id === user.currentCharacter);
-                            console.log('🔍 getUserAvatar - Found character:', character);
-                            if (character) {
-                                console.log('✅ Got avatar from Railway API:', character.icon);
-                                return character.icon;
-                            } else {
-                                console.log('❌ Character not found in database for ID:', user.currentCharacter);
-                            }
-                        } else {
-                            console.log('❌ No currentCharacter found for user:', username);
-                        }
-                    }
-                }
-            } catch (error) {
-                console.log('⚠️ Could not get avatar from Railway API:', error);
-            }
-            
-            // Fallback: Try local mappings
-            try {
-                const mappings = await getUsernameMappings();
-                const userEmail = mappings[username];
-                console.log('🔍 getUserAvatar - Local mappings for', username, ':', userEmail);
-                
-                if (userEmail) {
-                    // Get user's character data from local storage
-                    const userStorageKey = `characterData_${userEmail}`;
-                    const savedData = localStorage.getItem(userStorageKey);
-                    console.log('🔍 getUserAvatar - Local storage data:', savedData);
-            
-                    if (savedData) {
-                        try {
-                            const characterData = JSON.parse(savedData);
-                            const userCharacter = characterData.currentCharacter || 'kitty';
-                            console.log('🔍 getUserAvatar - User character from local storage:', userCharacter);
-                    
-                            // Find character in database to get the correct emoji
-                            const character = characterDatabase.find(char => char.id === userCharacter);
-                            console.log('🔍 getUserAvatar - Found character in local fallback:', character);
-                            if (character) {
-                                console.log('⚠️ Got avatar from local storage (fallback):', character.icon);
-                                return character.icon;
-                            }
-                        } catch (error) {
-                            console.log('Error parsing character data for user:', username, error);
-                        }
-                    }
-                }
-            } catch (error) {
-                console.log('⚠️ Could not get avatar from local mappings:', error);
-            }
-            
-            // Default avatar
-            console.log('❌ Using default avatar for:', username);
-            return '🐱'; // Default to kitty emoji for new users
-        }
-
         // Username-Email mapping functions
         async function storeUsernameMapping(username, email) {
             const mappings = await getUsernameMappings();
@@ -2441,8 +2222,8 @@
                     currentUserId = loginState.userId;
                     isLoggedIn = true;
                     
-                    // Update UI to logged-in state (now async)
-                    await updateUIForLoggedInUser(loginState.username);
+                    // Update UI to logged-in state
+                    updateUIForLoggedInUser(loginState.username);
                     
                     console.log('✅ Login state restored successfully for:', loginState.username);
                 } else {
@@ -2494,7 +2275,7 @@
                 });
                 
                 if (response.ok) {
-                const result = await response.json();
+                    const result = await response.json();
                     console.log('✅ Message sent via Railway:', result);
                     return result.message;
                 } else {
@@ -2532,7 +2313,7 @@
                 return [];
             }
         }
-
+        
         // Get user ID from username via Railway API
         async function getUserIdFromUsername(username) {
             try {
@@ -2546,7 +2327,7 @@
                 });
                 
                 if (response.ok) {
-                const result = await response.json();
+                    const result = await response.json();
                     console.log('✅ User search result:', result);
                     
                     if (result.users && result.users.length > 0) {
@@ -2612,7 +2393,7 @@
                 console.error('❌ Railway users test error:', error);
             }
         }
-
+        
         // Register user with Railway
         async function registerUser(username, email, password) {
             try {
@@ -2709,50 +2490,6 @@
                 }
             } catch (error) {
                 console.error('❌ Railway update user data error:', error);
-                return false;
-            }
-        }
-        
-        // Load user data from Railway database
-        async function loadUserDataFromRailway() {
-            if (!currentUserId) {
-                console.log('⚠️ No currentUserId, cannot load from Railway');
-                return false;
-            }
-            
-            try {
-                console.log('🔄 Loading user data from Railway for user ID:', currentUserId);
-                const userData = await getUserData();
-                
-                if (userData) {
-                    console.log('✅ Loaded user data from Railway:', userData);
-                    
-                    // Update global variables with Railway data
-                    if (userData.currentCharacter) {
-                        currentCharacter = userData.currentCharacter;
-                        console.log('🔄 Set currentCharacter from Railway:', currentCharacter);
-                    }
-                    
-                    if (userData.ownedCharacters && Array.isArray(userData.ownedCharacters)) {
-                        ownedCharacters = userData.ownedCharacters;
-                        console.log('🔄 Set ownedCharacters from Railway:', ownedCharacters);
-                    }
-                    
-                    if (typeof userData.gameCredits === 'number') {
-                        gameCredits = userData.gameCredits;
-                        console.log('🔄 Set gameCredits from Railway:', gameCredits);
-                    }
-                    
-                    // Update character database
-                    updateCharacterDatabase();
-                    
-                    return true;
-                } else {
-                    console.log('⚠️ No user data found on Railway, using defaults');
-                    return false;
-                }
-            } catch (error) {
-                console.error('❌ Error loading user data from Railway:', error);
                 return false;
             }
         }
@@ -2990,7 +2727,7 @@
         });
         */
 
-        function showSection(sectionId) {
+        function showSection(sectionId, event) {
             // Hide all sections
             document.querySelectorAll('.section').forEach(section => {
                 if (section && section.classList) {
@@ -3020,9 +2757,15 @@
                 }
             });
             
-            // Only add active class if event.target exists and has classList
+            // Add active class to clicked button
             if (event && event.target && event.target.classList) {
                 event.target.classList.add('active');
+            } else {
+                // Fallback: find the button by sectionId
+                const sidebarItem = document.querySelector(`[onclick*="showSection('${sectionId}')"]`);
+                if (sidebarItem && sidebarItem.classList) {
+                    sidebarItem.classList.add('active');
+                }
             }
         }
 
@@ -3487,25 +3230,12 @@
         }
         
         // Update UI for Railway login (copies Firebase auth state listener logic)
-        async function updateUIForLoggedInUser(username) {
+        function updateUIForLoggedInUser(username) {
             console.log('Updating UI for logged in user:', username);
             
-            // Load character data and credits from Railway database first
-            console.log('🔄 Loading user data from Railway...');
-            await loadUserDataFromRailway();
-            
-            // Load character data from local storage as fallback
-            console.log('🔄 Loading character data from local storage as fallback...');
-            loadCharacterData();
-            
-            // Update avatar based on current character
-            updateAvatar();
-            
-            // Update user info box (avatar and status) - use unified avatar system
-            const avatarEmoji = getCurrentUserAvatar();
-            
+            // Update user info box (avatar and status)
             document.getElementById('userInfo').innerHTML = `
-                <div class="user-info-avatar logged-in" id="userInfoAvatar">${avatarEmoji}</div>
+                <div class="user-info-avatar logged-in" id="userInfoAvatar">${localStorage.getItem('userAvatar') || '👤'}</div>
                 <div><strong>User:</strong> ${username}</div>
                 <div><strong>Status:</strong> Online</div>
             `;
@@ -3540,8 +3270,7 @@
                 sidebarTitle.textContent = 'Navigation';
             }
             
-            // Update credits display with actual loaded data
-            console.log('🔄 Updating credits display with:', gameCredits);
+            // Update credits display
             document.getElementById('creditsAmount').textContent = gameCredits;
             document.getElementById('gcBalance').textContent = gameCredits + ' GC';
             document.getElementById('creditsAmountSidebar').textContent = gameCredits + ' GC';
@@ -3555,7 +3284,6 @@
             // Update character card statuses for the logged-in user
             setTimeout(() => {
                 updateCharacterCardStatuses();
-                populateAllCharacters(); // Refresh character display
             }, 100);
             
             // Update DM notification dot for the logged-in user
@@ -3574,16 +3302,13 @@
                 initializeInventory();
             }, 400);
             
-            // Start avatar synchronization system
-            startAvatarSyncSystem();
-            
-            console.log('✅ User successfully signed in via Railway:', username, 'with', gameCredits, 'credits and character:', currentCharacter);
+            console.log('User successfully signed in via Railway:', username);
         }
         
         async function performLogin(usernameOrEmail, password) {
             try {
                 // Check if it's a username or email
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                 const isEmail = emailRegex.test(usernameOrEmail);
                 
                 console.log('Attempting Railway login with:', usernameOrEmail, isEmail ? '(email)' : '(username)');
@@ -3610,8 +3335,8 @@
                     // Save login state for persistence
                     await saveLoginState(user);
                     
-                    // Update UI to show logged in state (now async)
-                    await updateUIForLoggedInUser(user.username);
+                    // Update UI to show logged in state
+                    updateUIForLoggedInUser(user.username);
                     
                     // Clear form
                     document.getElementById('username').value = '';
@@ -4146,6 +3871,15 @@
         }
 
         // Character search functionality
+        const characterDatabase = [
+            { id: 'fox', name: 'Fox', icon: '🦊', price: 600, owned: false, selected: false, description: 'A clever and agile fox character. Great for strategy games!' },
+            { id: 'wolf', name: 'Wolf', icon: '🐺', price: 800, owned: false, selected: false, description: 'A strong and loyal wolf character. Perfect for team games!' },
+            { id: 'bear', name: 'Bear', icon: '🐻', price: 1000, owned: false, selected: false, description: 'A powerful and protective bear character. Great for defense!' },
+            { id: 'rabbit', name: 'Rabbit', icon: '🐰', price: 400, owned: false, selected: false, description: 'A quick and energetic rabbit character. Fast and nimble!' },
+            { id: 'owl', name: 'Owl', icon: '🦉', price: 1200, owned: false, selected: false, description: 'A wise and mysterious owl character. Perfect for puzzle games!' },
+            { id: 'dragon', name: 'Dragon', icon: '🐉', price: 2000, owned: false, selected: false, description: 'A legendary dragon character. The ultimate choice!' },
+            { id: 'unicorn', name: 'Unicorn', icon: '🦄', price: 1500, owned: false, selected: false, description: 'A magical unicorn character. Brings luck and magic!' }
+        ];
 
         function searchCharacters() {
             const searchTerm = document.getElementById('characterSearch').value.toLowerCase().trim();
@@ -4244,8 +3978,6 @@
             const userSearchResults = document.getElementById('userSearchResults');
             const userResultsList = document.getElementById('userResultsList');
             
-            console.log('🔍 searchUsers called with term:', searchTerm);
-            
             if (searchTerm === '') {
                 userSearchResults.style.display = 'none';
                 return;
@@ -4297,7 +4029,6 @@
                 }
             } catch (error) {
                 console.log('⚠️ Railway search failed:', error.message);
-                console.error('Full error:', error);
             }
             
             // No users found
@@ -4355,10 +4086,77 @@
             return card;
         }
 
+        async function getUserAvatar(username) {
+            // Try to get user data from Railway API first
+            try {
+                const response = await fetch(`${RAILWAY_API_URL}/api/users/search?query=${encodeURIComponent(username)}`);
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success && result.users && result.users.length > 0) {
+                        const user = result.users.find(u => u.username === username);
+                        console.log('🔍 getUserAvatar - User data from Railway:', user);
+                        if (user && user.currentCharacter) {
+                            console.log('🔍 getUserAvatar - Current character ID:', user.currentCharacter);
+                            // Find character in database to get the correct emoji
+                            const character = characterDatabase.find(char => char.id === user.currentCharacter);
+                            console.log('🔍 getUserAvatar - Found character:', character);
+                            if (character) {
+                                console.log('✅ Got avatar from Railway API:', character.icon);
+                                return character.icon;
+                            } else {
+                                console.log('❌ Character not found in database for ID:', user.currentCharacter);
+                            }
+                        } else {
+                            console.log('❌ No currentCharacter found for user:', username);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.log('⚠️ Could not get avatar from Railway API:', error);
+            }
+            
+            // Fallback: Try local mappings
+            try {
+                const mappings = await getUsernameMappings();
+                const userEmail = mappings[username];
+                console.log('🔍 getUserAvatar - Local mappings for', username, ':', userEmail);
+                
+                if (userEmail) {
+                    // Get user's character data from local storage
+                    const userStorageKey = `characterData_${userEmail}`;
+                    const savedData = localStorage.getItem(userStorageKey);
+                    console.log('🔍 getUserAvatar - Local storage data:', savedData);
+                    
+                    if (savedData) {
+                        try {
+                            const characterData = JSON.parse(savedData);
+                            const userCharacter = characterData.currentCharacter || 'kitty';
+                            console.log('🔍 getUserAvatar - User character from local storage:', userCharacter);
+                            
+                            // Find character in database to get the correct emoji
+                            const character = characterDatabase.find(char => char.id === userCharacter);
+                            console.log('🔍 getUserAvatar - Found character in local fallback:', character);
+                            if (character) {
+                                console.log('⚠️ Got avatar from local storage (fallback):', character.icon);
+                                return character.icon;
+                            }
+                        } catch (error) {
+                            console.log('Error parsing character data for user:', username, error);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.log('⚠️ Could not get avatar from local mappings:', error);
+            }
+            
+            // Default avatar
+            console.log('❌ Using default avatar for:', username);
+            return '🐱'; // Default to kitty emoji for new users
+        }
 
-        async function viewUserProfile(username) {
+        function viewUserProfile(username) {
             // Check if this is the current user's profile
-            const mappings = await getUsernameMappings();
+            const mappings = getUsernameMappings();
             const currentUserEmail = currentUser;
             const currentUsername = Object.keys(mappings).find(key => mappings[key] === currentUserEmail);
             
@@ -4367,11 +4165,11 @@
                 showSection('profile');
             } else {
                 // This is another user - show their profile modal
-                await showUserProfileModal(username);
+                showUserProfileModal(username);
             }
         }
 
-        async function showUserProfileModal(username) {
+        function showUserProfileModal(username) {
             // Generate random stats for demo purposes
             const randomStats = {
                 level: Math.floor(Math.random() * 50) + 1,
@@ -4381,7 +4179,7 @@
             };
             
             // Get user's actual character and avatar
-            const userAvatar = await getUserAvatar(username);
+            const userAvatar = getUserAvatar(username);
             
             // Update modal content
             document.getElementById('userProfileIcon').textContent = userAvatar;
@@ -4554,10 +4352,6 @@
                     console.log('⚠️ Railway API not available, using local storage fallback');
                 }
             });
-            
-            // Start avatar synchronization system
-            startAvatarSyncSystem();
-            
             // Registration fields
             const regFields = ['regUsername', 'regDateOfBirth', 'regEmail', 'regPassword'];
             regFields.forEach(fieldId => {
@@ -4589,142 +4383,13 @@
             populateAllCharacters();
         });
 
-        // Avatar Synchronization System
-        let avatarSyncInterval = null;
-        let lastSyncTime = 0;
-        
-        function startAvatarSyncSystem() {
-            console.log('🔄 Starting avatar synchronization system...');
-            
-            // Initial sync on startup
-            syncAvatarsFromDatabase();
-            
-            // Set up periodic sync every 10 seconds
-            avatarSyncInterval = setInterval(() => {
-                syncAvatarsFromDatabase();
-            }, 10000);
-            
-            console.log('✅ Avatar synchronization system started');
-        }
-        
-        function stopAvatarSyncSystem() {
-            if (avatarSyncInterval) {
-                clearInterval(avatarSyncInterval);
-                avatarSyncInterval = null;
-                console.log('⏹️ Avatar synchronization system stopped');
-            }
-        }
-        
-        async function syncAvatarsFromDatabase() {
-            if (!isLoggedIn || !currentUserId) {
-                return;
-            }
-            
-            try {
-                console.log('🔄 Syncing avatars from database...');
-                
-                // Get user data from Railway
-                const response = await fetch(`${RAILWAY_API_URL}/api/user/${currentUserId}/data`);
-                if (response.ok) {
-                    const result = await response.json();
-                    if (result.success && result.data) {
-                        const userData = result.data;
-                        
-                        // Check if character data has changed
-                        if (userData.currentCharacter && userData.currentCharacter !== currentCharacter) {
-                            console.log('🔄 Character changed from', currentCharacter, 'to', userData.currentCharacter);
-                            currentCharacter = userData.currentCharacter;
-                            updateAvatar();
-                        }
-                        
-                        // Check if owned characters have changed
-                        if (userData.ownedCharacters && JSON.stringify(userData.ownedCharacters) !== JSON.stringify(ownedCharacters)) {
-                            console.log('🔄 Owned characters changed:', userData.ownedCharacters);
-                            ownedCharacters = userData.ownedCharacters;
-                            updateCharacterDatabase();
-                            updateCharacterCardStatuses();
-                            populateAllCharacters();
-                        }
-                        
-                        // Check if game credits have changed
-                        if (userData.gameCredits !== undefined && userData.gameCredits !== gameCredits) {
-                            console.log('🔄 Game credits changed from', gameCredits, 'to', userData.gameCredits);
-                            gameCredits = userData.gameCredits;
-                            
-                            // Update credit displays
-                            const creditsAmount = document.getElementById('creditsAmount');
-                            const gcBalance = document.getElementById('gcBalance');
-                            const creditsAmountSidebar = document.getElementById('creditsAmountSidebar');
-                            if (creditsAmount) creditsAmount.textContent = gameCredits;
-                            if (gcBalance) gcBalance.textContent = gameCredits + ' GC';
-                            if (creditsAmountSidebar) creditsAmountSidebar.textContent = gameCredits + ' GC';
-                        }
-                        
-                        lastSyncTime = Date.now();
-                        console.log('✅ Avatar sync completed');
-                    }
-                }
-            } catch (error) {
-                console.log('⚠️ Avatar sync failed:', error.message);
-            }
-        }
-        
-        // Enhanced updateAvatar function that also syncs to database
-        function updateAvatar() {
-            const character = characterDatabase.find(char => char.id === currentCharacter);
-            const avatarEmoji = character ? character.icon : '🐱';
-            
-            // Update ALL avatar displays consistently
-            updateAllAvatarDisplays(avatarEmoji);
-            
-            // Store in localStorage for quick access
-            localStorage.setItem('userAvatar', avatarEmoji);
-            
-            // Sync to Railway database if logged in
-            if (isLoggedIn && currentUserId) {
-                syncAvatarToDatabase();
-            }
-            
-            console.log('🔄 Updated avatar to:', avatarEmoji, 'for character:', currentCharacter);
-        }
-        
-        async function syncAvatarToDatabase() {
-            if (!isLoggedIn || !currentUserId) return;
-            
-            try {
-                const response = await fetch(`${RAILWAY_API_URL}/api/user/${currentUserId}/data`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        currentCharacter: currentCharacter,
-                        ownedCharacters: ownedCharacters,
-                        gameCredits: gameCredits
-                    })
-                });
-                
-                if (response.ok) {
-                    console.log('✅ Avatar synced to database');
-                } else {
-                    console.log('⚠️ Failed to sync avatar to database');
-                }
-            } catch (error) {
-                console.log('⚠️ Error syncing avatar to database:', error.message);
-            }
-        }
-        
-        // Enhanced selectCharacter function that triggers sync
         async function selectCharacter(characterName) {
             if (!isLoggedIn) {
                 alert('Please login first to select characters.');
                 return;
             }
             
-            console.log('🎭 Selecting character:', characterName);
             currentCharacter = characterName;
-            
-            // Update avatar immediately
             updateAvatar();
             
             // Update character database
@@ -4738,11 +4403,6 @@
             
             // Save character data
             await saveCharacterData();
-            
-            // Sync to database immediately
-            await syncAvatarToDatabase();
-            
-            console.log('✅ Character selected successfully:', characterName);
             
             alert(`🎮 ${characterName.charAt(0).toUpperCase() + characterName.slice(1)} selected!\n\nYour avatar has been updated to ${characterName}!`);
             
@@ -5047,21 +4707,6 @@
         let selectedDMRecipient = null;
         let currentConversation = null;
         let conversations = [];
-        
-        // Function to open the DM modal
-        function openDM() {
-            console.log('📱 Opening DM modal...');
-            const dmModal = document.getElementById('dmModal');
-            if (dmModal) {
-                dmModal.style.display = 'block';
-                console.log('📱 DM modal opened');
-                
-                // Load conversations when opening DM
-                loadConversations().catch(console.error);
-            } else {
-                console.error('❌ DM modal not found');
-            }
-        }
 
         function closeDMModal() {
             document.getElementById('dmModal').style.display = 'none';
@@ -5377,15 +5022,15 @@
             }
             
             // No users found
-                recipientList.innerHTML = `
-                    <div style="grid-column: 1 / -1; text-align: center; padding: 20px; color: #666;">
-                        <div style="font-size: 24px; margin-bottom: 8px;">👤</div>
+            recipientList.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 20px; color: #666;">
+                    <div style="font-size: 24px; margin-bottom: 8px;">👤</div>
                     <div>No registered users found matching "${searchTerm}"</div>
                     <div style="font-size: 12px; margin-top: 8px; color: #999;">
                         Only registered SkyParty users appear in search
                     </div>
-                    </div>
-                `;
+                </div>
+            `;
             recipientResults.style.display = 'block';
         }
 
@@ -5585,34 +5230,34 @@
                 console.log('✅ Message sent via Railway successfully');
                 
                 // Add message to local conversation for immediate display
-            currentConversation.messages.push(message);
-            currentConversation.lastActivity = new Date().toISOString();
-            
+                currentConversation.messages.push(message);
+                currentConversation.lastActivity = new Date().toISOString();
+                
                 console.log('📝 Current conversation after adding message:', currentConversation);
                 console.log('📝 Messages count:', currentConversation.messages.length);
                 
                 // Save conversation locally (for offline fallback)
-            saveConversation(currentConversation);
-            
-            // Update the conversations array to reflect the new message
-            const conversationIndex = conversations.findIndex(conv => conv.id === currentConversation.id);
+                saveConversation(currentConversation);
+                
+                // Update the conversations array to reflect the new message
+                const conversationIndex = conversations.findIndex(conv => conv.id === currentConversation.id);
                 console.log('🔄 Conversation index in array:', conversationIndex);
                 console.log('🔄 Total conversations in array:', conversations.length);
-            if (conversationIndex !== -1) {
-                conversations[conversationIndex] = currentConversation;
+                if (conversationIndex !== -1) {
+                    conversations[conversationIndex] = currentConversation;
                     console.log('🔄 Updated conversation in array');
                 } else {
                     console.log('🔄 Conversation not found in array, adding it');
                     conversations.push(currentConversation);
-            }
-            
-            // Clear input and refresh messages
-            document.getElementById('dmMessageText').value = '';
+                }
+                
+                // Clear input and refresh messages
+                document.getElementById('dmMessageText').value = '';
                 console.log('🔄 About to call loadConversationMessages with ID:', currentConversation.id);
                 await loadConversationMessages(currentConversation.id);
                 console.log('🔄 loadConversationMessages completed');
-            
-            // Refresh conversations list to update last message
+                
+                // Refresh conversations list to update last message
                 await loadConversations();
             } else {
                 console.error('❌ Failed to send message via Railway');
@@ -5706,6 +5351,50 @@
             return null;
         }
 
+        async function getOtherUserInConversation(conversation) {
+            const currentUsername = await getCurrentUsername();
+            console.log('🔍 getOtherUserInConversation - Current username:', currentUsername);
+            console.log('🔍 getOtherUserInConversation - Conversation:', conversation);
+            console.log('🔍 getOtherUserInConversation - Participants:', conversation.participants);
+            console.log('🔍 getOtherUserInConversation - OtherParticipant:', conversation.otherParticipant);
+            
+            // Railway API format - use otherParticipant field if available
+            if (conversation.otherParticipant) {
+                console.log('✅ Using Railway otherParticipant:', conversation.otherParticipant);
+                return conversation.otherParticipant;
+            }
+            
+            // Local format - find from participants array
+            if (conversation.participants && Array.isArray(conversation.participants)) {
+                // Filter out invalid participants (numbers, empty strings, etc.)
+                const validParticipants = conversation.participants.filter(p => 
+                    typeof p === 'string' && p.trim() !== '' && p !== currentUsername
+                );
+                
+                console.log('🔍 Valid participants after filtering:', validParticipants);
+                
+                if (validParticipants.length > 0) {
+                    const otherUser = validParticipants[0]; // Take the first valid participant
+                    console.log('✅ Using local participants array:', otherUser);
+                    return otherUser;
+                } else {
+                    console.error('❌ No valid participants found after filtering');
+                    // Try to extract from conversation ID as fallback
+                    const convId = conversation.id;
+                    if (convId && convId.includes('_')) {
+                        const parts = convId.split('_');
+                        const otherUser = parts.find(part => part !== currentUsername && part.trim() !== '');
+                        if (otherUser) {
+                            console.log('✅ Using conversation ID fallback:', otherUser);
+                            return otherUser;
+                        }
+                    }
+                }
+            }
+            
+            console.error('❌ No valid participant data found:', conversation);
+            return null;
+        }
 
         function createConversationId(user1, user2) {
             // Create a consistent conversation ID regardless of order
@@ -5940,56 +5629,12 @@
                 console.error('❌ Error refreshing conversation:', error);
             }
         }
-
+        
         function checkForNewMessages() {
             // This function can be called periodically to check for new messages
             // For now, we'll call it when loading conversations
             loadConversations();
             updateDMNotificationDot();
-        }
-
-        // Get the other user in a conversation (not the current user)
-        async function getOtherUserInConversation(conversation) {
-            console.log('🔍 getOtherUserInConversation called with:', conversation);
-            
-            if (!conversation || !conversation.participants || !Array.isArray(conversation.participants)) {
-                console.error('❌ Invalid conversation object:', conversation);
-                return 'Unknown User';
-            }
-            
-            const currentUsername = await getCurrentUsername();
-            console.log('🔍 Current username:', currentUsername);
-            console.log('🔍 Conversation participants:', conversation.participants);
-            
-            // Find the participant that is NOT the current user
-            const otherUser = conversation.participants.find(participant => {
-                // Handle different data formats
-                if (typeof participant === 'string') {
-                    return participant !== currentUsername;
-                } else if (typeof participant === 'object' && participant.username) {
-                    return participant.username !== currentUsername;
-                } else if (typeof participant === 'number') {
-                    // Handle case where participant is a user ID
-                    return participant !== currentUserId;
-                }
-                return false;
-            });
-            
-            console.log('🔍 Found other user:', otherUser);
-            
-            // Return the other user, handling different formats
-            if (typeof otherUser === 'string') {
-                return otherUser;
-            } else if (typeof otherUser === 'object' && otherUser.username) {
-                return otherUser.username;
-            } else if (typeof otherUser === 'number') {
-                // If we have a user ID, try to get the username
-                // For now, return the ID as string - this could be improved
-                return `User${otherUser}`;
-            }
-            
-            console.error('❌ Could not determine other user in conversation:', conversation);
-            return 'Unknown User';
         }
 
         // Function to clean up corrupted read status data
@@ -6091,40 +5736,42 @@
         let mailboxItems = [];
 
         async function loadMailbox() {
-            if (!currentUser || !currentUserId) return;
+            if (!currentUserId) return;
 
             try {
-                console.log('📮 Loading mailbox from database for user:', currentUserId);
+                console.log('📮 Loading mailbox for user ID:', currentUserId);
                 
-                const response = await fetch(`${RAILWAY_API_URL}/api/user/${currentUserId}/gifts`);
+                const response = await fetch(`${RAILWAY_API_URL}/api/user/${currentUserId}/gifts`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
                 if (response.ok) {
                     const result = await response.json();
+                    console.log('📮 Mailbox data from Railway:', result);
+                    
                     if (result.success && result.gifts) {
-                        // Convert database gifts to mailbox format
+                        // Map Railway gift format to local mailbox format
                         mailboxItems = result.gifts.map(gift => ({
-                            id: gift.id.toString(),
+                            id: gift.id,
                             sender: gift.sender_username,
-                            recipient: currentUser,
+                            recipient: gift.recipient_username,
                             itemType: gift.item_type,
-                            itemData: {
-                                name: gift.item_name,
-                                icon: gift.item_icon,
-                                description: gift.item_description,
-                                price: gift.item_price
-                            },
+                            itemData: gift.item_data,
                             message: gift.message,
                             timestamp: gift.created_at,
-                            read: false, // Will be updated when user opens the gift
+                            read: gift.status === 'read',
                             claimed: gift.status === 'claimed'
                         }));
                         
-                        console.log('📮 Loaded', mailboxItems.length, 'gifts from database');
+                        console.log('📮 Mapped mailbox items:', mailboxItems);
                     } else {
-                        console.log('📮 No gifts found in database');
                         mailboxItems = [];
                     }
                 } else {
-                    console.error('❌ Failed to load mailbox from database');
+                    console.error('❌ Failed to load mailbox from Railway');
                     mailboxItems = [];
                 }
             } catch (error) {
@@ -6189,15 +5836,14 @@
                 `;
             } else {
                 mailboxContainer.innerHTML = '';
-                // Create mail elements asynchronously
-                mailboxItems.forEach(async item => {
-                    const mailElement = await createMailItemElement(item);
+                mailboxItems.forEach(item => {
+                    const mailElement = createMailItemElement(item);
                     mailboxContainer.appendChild(mailElement);
                 });
             }
         }
 
-        async function createMailItemElement(item) {
+        function createMailItemElement(item) {
             const div = document.createElement('div');
             div.className = 'mail-item';
             div.style.cssText = `
@@ -6213,7 +5859,7 @@
 
             const itemIcon = getItemIcon(item.itemType);
             const itemName = getItemName(item.itemType, item.itemData);
-            const senderAvatar = await getUserAvatar(item.sender);
+            const senderAvatar = getUserAvatar(item.sender);
 
             div.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 12px;">
@@ -6312,10 +5958,10 @@
             const character = item.itemData;
             
             try {
-                console.log('🎁 Claiming character gift:', character.name);
+                console.log('✅ Accepting character gift:', item);
                 
-                // Claim gift via database API
-                const response = await fetch(`${RAILWAY_API_URL}/api/gifts/${item.id}/claim`, {
+                // Claim gift via Railway API
+                const claimResponse = await fetch(`${RAILWAY_API_URL}/api/gifts/${item.id}/claim`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -6325,67 +5971,63 @@
                     })
                 });
                 
-                if (response.ok) {
-                    const result = await response.json();
-                    console.log('✅ Gift claimed successfully:', result);
-                    
-                    // Find the character ID from the character database
-                    const characterFromDB = characterDatabase.find(char => char.name === character.name);
-                    const characterId = characterFromDB ? characterFromDB.id : character.name.toLowerCase().replace(/\s+/g, '');
-                    
-                    // Add character to owned characters
-                    if (!ownedCharacters.includes(characterId)) {
-                        ownedCharacters.push(characterId);
-                        await saveCharacterData();
-                        updateCharacterCardStatuses();
-                    }
-                    
-                    // Add character to inventory
-                    const newInventoryItem = {
-                        id: `character_${characterId}_${Date.now()}`,
-                        type: 'character',
-                        name: character.name,
-                        icon: character.icon,
-                        description: character.description,
-                        price: character.price,
-                        acquiredDate: new Date().toISOString(),
-                        source: 'gift',
-                        quantity: 1
-                    };
-                    
-                    inventoryItems.push(newInventoryItem);
-                    saveInventory();
-                    
-                    // Update filtered items to include the new item
-                    filteredInventoryItems = [...inventoryItems];
-                    
-                    // Update inventory UI immediately
-                    updateInventoryUI();
-                    
-                    // Reload mailbox to get updated status
-                    await loadMailbox();
-                    
-                    alert(`✅ Character "${character.name}" has been added to your collection!`);
-                } else {
-                    const errorResult = await response.json();
-                    console.error('❌ Failed to claim gift:', errorResult);
-                    alert('❌ Failed to claim gift. Please try again.');
+                if (!claimResponse.ok) {
+                    throw new Error('Failed to claim gift');
                 }
+                
+                const claimResult = await claimResponse.json();
+                console.log('✅ Gift claimed successfully:', claimResult);
+                
+                // Find the character ID from the character database
+                const characterFromDB = characterDatabase.find(char => char.name === character.name);
+                const characterId = characterFromDB ? characterFromDB.id : character.name.toLowerCase().replace(/\s+/g, '');
+                
+                // Add character to owned characters
+                if (!ownedCharacters.includes(characterId)) {
+                    ownedCharacters.push(characterId);
+                    await saveCharacterData();
+                    updateCharacterCardStatuses();
+                }
+                
+                // Add character to inventory
+                const newInventoryItem = {
+                    id: `character_${characterId}_${Date.now()}`,
+                    type: 'character',
+                    name: character.name,
+                    icon: character.icon,
+                    description: character.description,
+                    price: character.price,
+                    acquiredDate: new Date().toISOString(),
+                    source: 'gift',
+                    quantity: 1
+                };
+                
+                inventoryItems.push(newInventoryItem);
+                saveInventory();
+                
+                // Update filtered items to include the new item
+                filteredInventoryItems = [...inventoryItems];
+                
+                // Update inventory UI immediately
+                updateInventoryUI();
+                
+                // Reload mailbox to reflect the claimed status
+                await loadMailbox();
+                
+                alert(`✅ Character "${character.name}" has been added to your collection!`);
+                
             } catch (error) {
-                console.error('❌ Error claiming gift:', error);
-                alert('❌ Error claiming gift. Please try again.');
+                console.error('❌ Error accepting character gift:', error);
+                alert('❌ Failed to accept gift. Please try again.');
             }
         }
 
         async function rejectCharacterGift(item) {
-            const character = item.itemData;
-            const sender = item.sender;
-            
             try {
-                console.log('❌ Rejecting character gift:', character.name);
+                console.log('❌ Rejecting character gift:', item);
                 
-                // Reject gift via database API
-                const response = await fetch(`${RAILWAY_API_URL}/api/gifts/${item.id}/reject`, {
+                // Reject gift via Railway API
+                const rejectResponse = await fetch(`${RAILWAY_API_URL}/api/gifts/${item.id}/reject`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -6395,22 +6037,21 @@
                     })
                 });
                 
-                if (response.ok) {
-                    const result = await response.json();
-                    console.log('✅ Gift rejected successfully:', result);
-                    
-                    // Reload mailbox to get updated status
-                    await loadMailbox();
-                    
-                    alert(`❌ Gift rejected! The character has been returned to ${sender}.`);
-                } else {
-                    const errorResult = await response.json();
-                    console.error('❌ Failed to reject gift:', errorResult);
-                    alert('❌ Failed to reject gift. Please try again.');
+                if (!rejectResponse.ok) {
+                    throw new Error('Failed to reject gift');
                 }
+                
+                const rejectResult = await rejectResponse.json();
+                console.log('❌ Gift rejected successfully:', rejectResult);
+                
+                // Reload mailbox to reflect the rejected status
+                await loadMailbox();
+                
+                alert(`❌ Gift rejected. The character has been returned to the sender.`);
+                
             } catch (error) {
-                console.error('❌ Error rejecting gift:', error);
-                alert('❌ Error rejecting gift. Please try again.');
+                console.error('❌ Error rejecting character gift:', error);
+                alert('❌ Failed to reject gift. Please try again.');
             }
         }
 
@@ -6524,15 +6165,7 @@
             const recipientResults = document.getElementById('giftRecipientResults');
             const recipientList = document.getElementById('giftRecipientList');
             
-            console.log('🎁 Gift Search: Function called with term:', searchTerm);
-            console.log('🎁 Gift Search: DOM elements found:', {
-                searchInput: !!document.getElementById('giftRecipientSearch'),
-                resultsDiv: !!recipientResults,
-                listDiv: !!recipientList
-            });
-            
             if (searchTerm === '') {
-                console.log('🎁 Gift Search: Empty search term, hiding results');
                 recipientResults.style.display = 'none';
                 return;
             }
@@ -6556,29 +6189,18 @@
                     if (result.success && result.users && Array.isArray(result.users)) {
                         filteredUsers = result.users.map(user => user.username);
                         console.log('👥 Gift Found Railway users:', filteredUsers);
-                    } else {
-                        console.log('❌ Gift Railway search: Invalid result format or no users found');
                     }
                     
                     if (filteredUsers.length > 0) {
-                        console.log('🎁 Gift Search: Creating cards for', filteredUsers.length, 'users');
                         recipientList.innerHTML = '';
-                        
-                        // Create cards for each user (await all async operations)
                         for (const username of filteredUsers) {
-                            console.log('🎁 Gift Search: Creating card for:', username);
                             const recipientCard = await createGiftRecipientCard(username);
                             recipientList.appendChild(recipientCard);
                         }
-                        
                         recipientResults.style.display = 'block';
                         console.log('✅ Gift Showing Railway users in search results');
                         return;
-                    } else {
-                        console.log('🎁 Gift Search: No users found, showing no results message');
                     }
-                } else {
-                    console.log('❌ Gift Railway search: HTTP error:', response.status, response.statusText);
                 }
             } catch (error) {
                 console.log('⚠️ Gift Railway search failed:', error.message);
@@ -6651,147 +6273,101 @@
         async function sendGiftToRecipient() {
             if (!selectedGiftRecipient || !window.giftCharacterData) return;
             
-            // Check if recipient exists in Railway database
+            console.log('🎁 Sending gift to:', selectedGiftRecipient);
+            console.log('🎁 Gift character data:', window.giftCharacterData);
+            
             try {
-                const response = await fetch(`${RAILWAY_API_URL}/api/users/search?query=${encodeURIComponent(selectedGiftRecipient)}`);
-                if (response.ok) {
-                    const result = await response.json();
-                    if (!result.success || !result.users || result.users.length === 0) {
-                        alert('❌ User not found. Please check the username and try again.');
-                        return;
+                // Get recipient user ID from Railway
+                const recipientResponse = await fetch(`${RAILWAY_API_URL}/api/users/search?query=${encodeURIComponent(selectedGiftRecipient)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
                     }
-                    
-                    const recipientExists = result.users.some(user => user.username === selectedGiftRecipient);
-                    if (!recipientExists) {
-                        alert('❌ User not found. Please check the username and try again.');
-                        return;
-                    }
-                } else {
-                    alert('❌ Error checking user. Please try again.');
+                });
+                
+                if (!recipientResponse.ok) {
+                    throw new Error('Failed to find recipient user');
+                }
+                
+                const recipientResult = await recipientResponse.json();
+                if (!recipientResult.success || !recipientResult.users || recipientResult.users.length === 0) {
+                    alert('❌ User not found. Please check the username and try again.');
                     return;
                 }
-            } catch (error) {
-                console.error('Error checking recipient:', error);
-                alert('❌ Error checking user. Please try again.');
-                return;
-            }
-            
-            // Remove one character from inventory
-            console.log('Looking for character to remove:', window.giftCharacterData.name);
-            console.log('Current inventory items:', inventoryItems);
-            
-            const characterIndex = inventoryItems.findIndex(item => 
-                item.type === 'character' && item.name === window.giftCharacterData.name
-            );
-            
-            console.log('Found character at index:', characterIndex);
-            
-        // First, validate that we have the character in inventory
-        if (characterIndex === -1) {
-            console.log('Character not found in inventory!');
-            alert('❌ Error: Character not found in inventory. Please try again.');
-            return; // Exit early if character not found
-        }
-        
-        // Send gift to recipient via Railway database FIRST
-        const giftMessage = document.getElementById('giftMessage').value || '';
-        
-        try {
-            // Get recipient's user data from Railway
-            const recipientResponse = await fetch(`${RAILWAY_API_URL}/api/users/search?query=${encodeURIComponent(selectedGiftRecipient)}`);
-            if (recipientResponse.ok) {
-                const recipientResult = await recipientResponse.json();
-                if (recipientResult.success && recipientResult.users && recipientResult.users.length > 0) {
-                    const recipientUser = recipientResult.users.find(user => user.username === selectedGiftRecipient);
-                    if (recipientUser) {
-                        console.log('🎁 Sending gift to:', selectedGiftRecipient, 'ID:', recipientUser.id);
-                        
-                        // Send gift via Railway database API
-                        const giftResponse = await fetch(`${RAILWAY_API_URL}/api/gifts/send`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                senderId: currentUserId,
-                                recipientId: recipientUser.id,
-                                itemType: 'character',
-                                itemData: {
-                                    name: window.giftCharacterData.name,
-                                    icon: window.giftCharacterData.icon,
-                                    description: window.giftCharacterData.description,
-                                    price: window.giftCharacterData.price
-                                },
-                                message: giftMessage
-                            })
-                        });
-                        
-                        if (giftResponse.ok) {
-                            const giftResult = await giftResponse.json();
-                            console.log('✅ Gift sent successfully:', giftResult);
-                            
-                            // ONLY NOW remove character from inventory after successful database save
-                            console.log('Removing character:', inventoryItems[characterIndex]);
-                            
-                            // Check if this is the currently equipped character and if we'll have any left
-                            const characterId = window.giftCharacterData.name.toLowerCase().replace(/\s+/g, '');
-                            const isCurrentlyEquipped = currentCharacter === characterId;
-                            
-                            // Count how many copies of this character we currently have
-                            const currentQuantity = inventoryItems.filter(item => 
-                                item.type === 'character' && item.name === window.giftCharacterData.name
-                            ).length;
-                            
-                            console.log('Current quantity of', window.giftCharacterData.name, ':', currentQuantity);
-                            
-                            // Only switch to kitty if this is our current character AND we'll have 0 left after gifting
-                            if (isCurrentlyEquipped && currentQuantity <= 1) {
-                                console.log('⚠️ Sending last copy of currently equipped character, switching to kitty');
-                                currentCharacter = 'kitty';
-                                updateAvatar();
-                                
-                                // Update owned characters list
-                                if (ownedCharacters.includes(characterId)) {
-                                    ownedCharacters = ownedCharacters.filter(char => char !== characterId);
-                                    updateCharacterDatabase();
-                                }
-                                
-                                // Save character data changes
-                                await saveCharacterData();
-                            } else if (isCurrentlyEquipped && currentQuantity > 1) {
-                                console.log('✅ Sending character but still have', currentQuantity - 1, 'copies left, keeping current character');
-                            }
-                            
-                            inventoryItems.splice(characterIndex, 1);
-                            saveInventory();
-                            
-                            // Update filtered items to reflect the removal
-                            filteredInventoryItems = [...inventoryItems];
-                            
-                            updateInventoryUI();
-                            console.log('Character removed successfully');
-                            
-                            alert(`✅ Gift Sent!\n\n${window.giftCharacterData.name} has been sent to ${selectedGiftRecipient}!\n\nThey will receive it in their mailbox immediately.`);
-                            
-                            // Close modal
-                            closeGiftSendingModal();
-                        } else {
-                            const errorResult = await giftResponse.json();
-                            console.error('❌ Failed to send gift:', errorResult);
-                            alert('❌ Failed to send gift. Please try again.');
-                        }
-                    } else {
-                        alert('❌ User not found. Please check the username and try again.');
-                    }
-                } else {
-                    alert('❌ User not found. Please check the username and try again.');
+                
+                const recipientUser = recipientResult.users[0];
+                const recipientId = recipientUser.id;
+                
+                console.log('✅ Found recipient user ID:', recipientId);
+                
+                // Check if character exists in inventory and get current quantity
+                const characterIndex = inventoryItems.findIndex(item => 
+                    item.type === 'character' && item.name === window.giftCharacterData.name
+                );
+                
+                if (characterIndex === -1) {
+                    alert('❌ Error: Character not found in inventory. Please try again.');
+                    return;
                 }
-            } else {
-                alert('❌ Error sending gift. Please try again.');
+                
+                const currentQuantity = inventoryItems[characterIndex].quantity || 1;
+                console.log('📊 Current character quantity:', currentQuantity);
+                
+                // Send gift to Railway database
+                const giftData = {
+                    senderId: currentUserId,
+                    recipientId: recipientId,
+                    itemType: 'character',
+                    itemData: {
+                        name: window.giftCharacterData.name,
+                        icon: window.giftCharacterData.icon,
+                        description: window.giftCharacterData.description,
+                        price: window.giftCharacterData.price
+                    },
+                    message: document.getElementById('giftMessage').value || ''
+                };
+                
+                console.log('📤 Sending gift data to Railway:', giftData);
+                
+                const sendResponse = await fetch(`${RAILWAY_API_URL}/api/gifts/send`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(giftData)
+                });
+                
+                if (!sendResponse.ok) {
+                    throw new Error('Failed to send gift to database');
+                }
+                
+                const sendResult = await sendResponse.json();
+                console.log('✅ Gift sent successfully:', sendResult);
+                
+                // Only remove character from inventory after successful database call
+                inventoryItems.splice(characterIndex, 1);
+                saveInventory();
+                
+                // Update filtered items to reflect the removal
+                filteredInventoryItems = [...inventoryItems];
+                updateInventoryUI();
+                
+                // Switch to kitty only if the gifted character was currently equipped AND quantity was 1 or less
+                if (currentCharacter === window.giftCharacterData.name && currentQuantity <= 1) {
+                    currentCharacter = 'kitty';
+                    updateAvatar();
+                    saveCharacterData();
+                }
+                
+                alert(`✅ Gift Sent!\n\n${window.giftCharacterData.name} has been sent to ${selectedGiftRecipient}!\n\nThey will receive it in their mailbox.`);
+                
+                // Close modal
+                closeGiftSendingModal();
+                
+            } catch (error) {
+                console.error('❌ Error sending gift:', error);
+                alert('❌ Failed to send gift. Please try again.');
             }
-        } catch (error) {
-            console.error('Error sending gift:', error);
-            alert('❌ Error sending gift. Please try again.');
         }
 
         // Gift Acceptance Modal Functions
@@ -6842,28 +6418,10 @@
             }
 
             // Add owned characters that are not already in inventory
-            console.log('🔄 Loading inventory - ownedCharacters:', ownedCharacters);
-            console.log('🔄 Loading inventory - current inventoryItems:', inventoryItems.map(item => ({name: item.name, type: item.type})));
-            
             ownedCharacters.forEach(characterId => {
-                console.log('🔄 Checking character:', characterId);
-                
-                // Check if character is already in inventory using multiple matching strategies
-                const alreadyInInventory = inventoryItems.some(item => {
-                    if (item.type !== 'character') return false;
-                    
-                    // Strategy 1: Match by character ID (most reliable)
-                    const itemCharacterId = item.name.toLowerCase().replace(/\s+/g, '');
-                    if (itemCharacterId === characterId) return true;
-                    
-                    // Strategy 2: Match by exact name
-                    const character = characterDatabase.find(char => char.id === characterId);
-                    if (character && item.name === character.name) return true;
-                    
-                    return false;
-                });
-                
-                console.log('🔄 Character', characterId, 'already in inventory:', alreadyInInventory);
+                const alreadyInInventory = inventoryItems.some(item => 
+                    item.type === 'character' && item.name.toLowerCase().replace(/\s+/g, '') === characterId
+                );
                 
                 if (!alreadyInInventory) {
                     let character;
@@ -6881,7 +6439,6 @@
                     }
                     
                     if (character) {
-                        console.log('✅ Adding character to inventory:', character.name);
                         inventoryItems.push({
                             id: `character_${characterId}_${Date.now()}`,
                             type: 'character',
@@ -6893,11 +6450,7 @@
                             source: characterId === 'kitty' ? 'default' : 'purchase',
                             quantity: 1
                         });
-                    } else {
-                        console.log('❌ Character not found in database:', characterId);
                     }
-                } else {
-                    console.log('⚠️ Character already in inventory:', characterId);
                 }
             });
 
@@ -7100,40 +6653,40 @@
             gameCredits = 0;
             isActivated = false;
             
-                    // Reset activation UI to unactivated state
-                    document.querySelector('.title-bar-text').textContent = 'SkyParty (Unactivated)';
-                    
-                    // Re-enable activation code boxes
-                    for (let i = 1; i <= 4; i++) {
-                        const box = document.getElementById(`activationCode${i}`);
-                        if (box) {
-                            box.classList.remove('activated');
-                            box.disabled = false;
-                            box.value = '';
-                        }
-                    }
-                    
-                    // Show activate button and hide activation status
-                    const activateBtn = document.getElementById('activateBtn');
-                    const activationStatus = document.getElementById('activationStatus');
-                    if (activateBtn) activateBtn.style.display = 'block';
-                    if (activationStatus) activationStatus.style.display = 'none';
-                    
-                    // Show activation warning
-                    const activationWarning = document.getElementById('activationWarning');
-                    if (activationWarning) activationWarning.style.display = 'block';
-                    
-                    // Update license information
-                    const licenseStatus = document.getElementById('licenseStatus');
-                    const licenseType = document.getElementById('licenseType');
-                    const licenseDays = document.getElementById('licenseDays');
-                    if (licenseStatus) {
-                        licenseStatus.textContent = 'Unactivated';
-                        licenseStatus.style.color = '#dc3545';
-                    }
-                    if (licenseType) licenseType.textContent = 'Evaluation (Limited Features)';
-                    if (licenseDays) licenseDays.textContent = '30 days';
-                    
+            // Reset activation UI to unactivated state
+            document.querySelector('.title-bar-text').textContent = 'SkyParty (Unactivated)';
+            
+            // Re-enable activation code boxes
+            for (let i = 1; i <= 4; i++) {
+                const box = document.getElementById(`activationCode${i}`);
+                if (box) {
+                    box.classList.remove('activated');
+                    box.disabled = false;
+                    box.value = '';
+                }
+            }
+            
+            // Show activate button and hide activation status
+            const activateBtn = document.getElementById('activateBtn');
+            const activationStatus = document.getElementById('activationStatus');
+            if (activateBtn) activateBtn.style.display = 'block';
+            if (activationStatus) activationStatus.style.display = 'none';
+            
+            // Show activation warning
+            const activationWarning = document.getElementById('activationWarning');
+            if (activationWarning) activationWarning.style.display = 'block';
+            
+            // Update license information
+            const licenseStatus = document.getElementById('licenseStatus');
+            const licenseType = document.getElementById('licenseType');
+            const licenseDays = document.getElementById('licenseDays');
+            if (licenseStatus) {
+                licenseStatus.textContent = 'Unactivated';
+                licenseStatus.style.color = '#dc3545';
+            }
+            if (licenseType) licenseType.textContent = 'Evaluation (Limited Features)';
+            if (licenseDays) licenseDays.textContent = '30 days';
+            
             // Reset UI to logged-out state
             initializeUI();
             
@@ -7357,45 +6910,6 @@
                     button.style.webkitAppRegion = 'no-drag';
                 });
             });
-        }
-
-        // Logout Functions
-        function confirmLogout() {
-            console.log('🚪 Confirming logout...');
-            
-            // Stop avatar synchronization system
-            stopAvatarSyncSystem();
-            
-            // Reset all user data
-            isLoggedIn = false;
-            currentUser = '';
-            currentUserId = null;
-            currentCharacter = 'kitty';
-            ownedCharacters = ['kitty'];
-            gameCredits = 0;
-            isActivated = false;
-            
-            // Reset all avatar displays to default
-            updateAllAvatarDisplays('👤');
-            
-            // Clear localStorage
-            localStorage.removeItem('userAvatar');
-            
-            // Initialize UI to logged-out state
-            initializeUI();
-            
-            // Close logout modal
-            closeLogoutModal();
-            
-            console.log('✅ Logout completed successfully');
-        }
-
-        function closeLogoutModal() {
-            document.getElementById('logoutModal').style.display = 'none';
-        }
-
-        function openLogoutModal() {
-            document.getElementById('logoutModal').style.display = 'block';
         }
 
         // Enhanced alert/confirm/prompt functions for Electron
