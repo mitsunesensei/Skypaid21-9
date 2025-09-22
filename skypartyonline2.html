@@ -6686,111 +6686,112 @@
             
             console.log('Found character at index:', characterIndex);
             
-            if (characterIndex !== -1) {
-                console.log('Removing character:', inventoryItems[characterIndex]);
-                
-                // Check if this is the currently equipped character and if we'll have any left
-                const characterId = window.giftCharacterData.name.toLowerCase().replace(/\s+/g, '');
-                const isCurrentlyEquipped = currentCharacter === characterId;
-                
-                // Count how many copies of this character we currently have
-                const currentQuantity = inventoryItems.filter(item => 
-                    item.type === 'character' && item.name === window.giftCharacterData.name
-                ).length;
-                
-                console.log('Current quantity of', window.giftCharacterData.name, ':', currentQuantity);
-                
-                // Only switch to kitty if this is our current character AND we'll have 0 left after gifting
-                if (isCurrentlyEquipped && currentQuantity <= 1) {
-                    console.log('⚠️ Sending last copy of currently equipped character, switching to kitty');
-                    currentCharacter = 'kitty';
-                    updateAvatar();
-                    
-                    // Update owned characters list
-                    if (ownedCharacters.includes(characterId)) {
-                        ownedCharacters = ownedCharacters.filter(char => char !== characterId);
-                        updateCharacterDatabase();
-                    }
-                    
-                    // Save character data changes
-                    await saveCharacterData();
-                } else if (isCurrentlyEquipped && currentQuantity > 1) {
-                    console.log('✅ Sending character but still have', currentQuantity - 1, 'copies left, keeping current character');
-                }
-                
-                inventoryItems.splice(characterIndex, 1);
-                saveInventory();
-                
-                // Update filtered items to reflect the removal
-                filteredInventoryItems = [...inventoryItems];
-                
-                updateInventoryUI();
-                console.log('Character removed successfully');
-            } else {
-                console.log('Character not found in inventory!');
-                alert('❌ Error: Character not found in inventory. Please try again.');
-                return; // Exit early if character not found
-            }
-            
-            // Send gift to recipient via Railway database
-            const giftMessage = document.getElementById('giftMessage').value || '';
-            
-            try {
-                // Get recipient's user data from Railway
-                const recipientResponse = await fetch(`${RAILWAY_API_URL}/api/users/search?query=${encodeURIComponent(selectedGiftRecipient)}`);
-                if (recipientResponse.ok) {
-                    const recipientResult = await recipientResponse.json();
-                    if (recipientResult.success && recipientResult.users && recipientResult.users.length > 0) {
-                        const recipientUser = recipientResult.users.find(user => user.username === selectedGiftRecipient);
-                        if (recipientUser) {
-                            console.log('🎁 Sending gift to:', selectedGiftRecipient, 'ID:', recipientUser.id);
-                            
-                            // Send gift via Railway database API
-                            const giftResponse = await fetch(`${RAILWAY_API_URL}/api/gifts/send`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json'
+        // First, validate that we have the character in inventory
+        if (characterIndex === -1) {
+            console.log('Character not found in inventory!');
+            alert('❌ Error: Character not found in inventory. Please try again.');
+            return; // Exit early if character not found
+        }
+        
+        // Send gift to recipient via Railway database FIRST
+        const giftMessage = document.getElementById('giftMessage').value || '';
+        
+        try {
+            // Get recipient's user data from Railway
+            const recipientResponse = await fetch(`${RAILWAY_API_URL}/api/users/search?query=${encodeURIComponent(selectedGiftRecipient)}`);
+            if (recipientResponse.ok) {
+                const recipientResult = await recipientResponse.json();
+                if (recipientResult.success && recipientResult.users && recipientResult.users.length > 0) {
+                    const recipientUser = recipientResult.users.find(user => user.username === selectedGiftRecipient);
+                    if (recipientUser) {
+                        console.log('🎁 Sending gift to:', selectedGiftRecipient, 'ID:', recipientUser.id);
+                        
+                        // Send gift via Railway database API
+                        const giftResponse = await fetch(`${RAILWAY_API_URL}/api/gifts/send`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                senderId: currentUserId,
+                                recipientId: recipientUser.id,
+                                itemType: 'character',
+                                itemData: {
+                                    name: window.giftCharacterData.name,
+                                    icon: window.giftCharacterData.icon,
+                                    description: window.giftCharacterData.description,
+                                    price: window.giftCharacterData.price
                                 },
-                                body: JSON.stringify({
-                                    senderId: currentUserId,
-                                    recipientId: recipientUser.id,
-                                    itemType: 'character',
-                                    itemData: {
-                                        name: window.giftCharacterData.name,
-                                        icon: window.giftCharacterData.icon,
-                                        description: window.giftCharacterData.description,
-                                        price: window.giftCharacterData.price
-                                    },
-                                    message: giftMessage
-                                })
-                            });
+                                message: giftMessage
+                            })
+                        });
+                        
+                        if (giftResponse.ok) {
+                            const giftResult = await giftResponse.json();
+                            console.log('✅ Gift sent successfully:', giftResult);
                             
-                            if (giftResponse.ok) {
-                                const giftResult = await giftResponse.json();
-                                console.log('✅ Gift sent successfully:', giftResult);
+                            // ONLY NOW remove character from inventory after successful database save
+                            console.log('Removing character:', inventoryItems[characterIndex]);
+                            
+                            // Check if this is the currently equipped character and if we'll have any left
+                            const characterId = window.giftCharacterData.name.toLowerCase().replace(/\s+/g, '');
+                            const isCurrentlyEquipped = currentCharacter === characterId;
+                            
+                            // Count how many copies of this character we currently have
+                            const currentQuantity = inventoryItems.filter(item => 
+                                item.type === 'character' && item.name === window.giftCharacterData.name
+                            ).length;
+                            
+                            console.log('Current quantity of', window.giftCharacterData.name, ':', currentQuantity);
+                            
+                            // Only switch to kitty if this is our current character AND we'll have 0 left after gifting
+                            if (isCurrentlyEquipped && currentQuantity <= 1) {
+                                console.log('⚠️ Sending last copy of currently equipped character, switching to kitty');
+                                currentCharacter = 'kitty';
+                                updateAvatar();
                                 
-                                alert(`✅ Gift Sent!\n\n${window.giftCharacterData.name} has been sent to ${selectedGiftRecipient}!\n\nThey will receive it in their mailbox immediately.`);
+                                // Update owned characters list
+                                if (ownedCharacters.includes(characterId)) {
+                                    ownedCharacters = ownedCharacters.filter(char => char !== characterId);
+                                    updateCharacterDatabase();
+                                }
                                 
-                                // Close modal
-                                closeGiftSendingModal();
-                            } else {
-                                const errorResult = await giftResponse.json();
-                                console.error('❌ Failed to send gift:', errorResult);
-                                alert('❌ Failed to send gift. Please try again.');
+                                // Save character data changes
+                                await saveCharacterData();
+                            } else if (isCurrentlyEquipped && currentQuantity > 1) {
+                                console.log('✅ Sending character but still have', currentQuantity - 1, 'copies left, keeping current character');
                             }
+                            
+                            inventoryItems.splice(characterIndex, 1);
+                            saveInventory();
+                            
+                            // Update filtered items to reflect the removal
+                            filteredInventoryItems = [...inventoryItems];
+                            
+                            updateInventoryUI();
+                            console.log('Character removed successfully');
+                            
+                            alert(`✅ Gift Sent!\n\n${window.giftCharacterData.name} has been sent to ${selectedGiftRecipient}!\n\nThey will receive it in their mailbox immediately.`);
+                            
+                            // Close modal
+                            closeGiftSendingModal();
                         } else {
-                            alert('❌ User not found. Please check the username and try again.');
+                            const errorResult = await giftResponse.json();
+                            console.error('❌ Failed to send gift:', errorResult);
+                            alert('❌ Failed to send gift. Please try again.');
                         }
                     } else {
                         alert('❌ User not found. Please check the username and try again.');
                     }
                 } else {
-                    alert('❌ Error sending gift. Please try again.');
+                    alert('❌ User not found. Please check the username and try again.');
                 }
-            } catch (error) {
-                console.error('Error sending gift:', error);
+            } else {
                 alert('❌ Error sending gift. Please try again.');
             }
+        } catch (error) {
+            console.error('Error sending gift:', error);
+            alert('❌ Error sending gift. Please try again.');
         }
 
         // Gift Acceptance Modal Functions
