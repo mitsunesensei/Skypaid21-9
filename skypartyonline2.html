@@ -6305,6 +6305,8 @@
         async function sendGiftToRecipient() {
             if (!selectedGiftRecipient || !window.giftCharacterData) return;
             
+            let recipientUser;
+            
             // Check if recipient exists in Railway database
             try {
                 const response = await fetch(`${RAILWAY_API_URL}/api/users/search?query=${encodeURIComponent(selectedGiftRecipient)}`);
@@ -6319,7 +6321,7 @@
                     return;
                 }
                 
-                const recipientUser = result.users.find(user => user.username === selectedGiftRecipient);
+                recipientUser = result.users.find(user => user.username === selectedGiftRecipient);
                 if (!recipientUser) {
                     alert('❌ User not found. Please check the username and try again.');
                     return;
