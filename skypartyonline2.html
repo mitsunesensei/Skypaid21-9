@@ -6324,28 +6324,7 @@
         async function sendGiftToRecipient() {
             if (!selectedGiftRecipient || !window.giftCharacterData) return;
             
-            console.log('🎁 Sending gift to:', selectedGiftRecipient);
-            console.log('🎁 Gift character data:', window.giftCharacterData);
-            
             try {
-                // Test Railway connection first
-                console.log('🔍 Testing Railway connection...');
-                const testResponse = await fetch(`${RAILWAY_API_URL}/api/health`);
-                console.log('🔍 Health check status:', testResponse.status);
-                
-                // Test if gift endpoint exists
-                console.log('🔍 Testing gift endpoint...');
-                const giftTestResponse = await fetch(`${RAILWAY_API_URL}/api/gifts/send`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ test: true })
-                });
-                console.log('🔍 Gift endpoint status:', giftTestResponse.status);
-                
-                if (!testResponse.ok) {
-                    throw new Error('Railway API is not available');
-                }
-                
                 // Get recipient user ID from Railway
                 const recipientResponse = await fetch(`${RAILWAY_API_URL}/api/users/search?query=${encodeURIComponent(selectedGiftRecipient)}`, {
                     method: 'GET',
@@ -6367,8 +6346,6 @@
                 const recipientUser = recipientResult.users[0];
                 const recipientId = recipientUser.id;
                 
-                console.log('✅ Found recipient user ID:', recipientId);
-                
                 // Check if character exists in inventory and get current quantity
                 const characterIndex = inventoryItems.findIndex(item => 
                     item.type === 'character' && item.name === window.giftCharacterData.name
@@ -6380,7 +6357,6 @@
                 }
                 
                 const currentQuantity = inventoryItems[characterIndex].quantity || 1;
-                console.log('📊 Current character quantity:', currentQuantity);
                 
                 // Send gift to Railway database
                 const giftData = {
@@ -6396,11 +6372,6 @@
                     message: document.getElementById('giftMessage').value || ''
                 };
                 
-                console.log('📤 Sending gift data to Railway:', giftData);
-                console.log('📤 Current user ID:', currentUserId);
-                console.log('📤 Selected recipient:', selectedGiftRecipient);
-                console.log('📤 Gift character data:', window.giftCharacterData);
-                
                 const sendResponse = await fetch(`${RAILWAY_API_URL}/api/gifts/send`, {
                     method: 'POST',
                     headers: {
@@ -6409,17 +6380,12 @@
                     body: JSON.stringify(giftData)
                 });
                 
-                console.log('📤 Send response status:', sendResponse.status);
-                console.log('📤 Send response ok:', sendResponse.ok);
-                
                 if (!sendResponse.ok) {
                     const errorText = await sendResponse.text();
-                    console.error('❌ Gift send error response:', errorText);
-                    throw new Error(`Failed to send gift to database: ${sendResponse.status} - ${errorText}`);
+                    throw new Error(`Failed to send gift: ${sendResponse.status} - ${errorText}`);
                 }
                 
                 const sendResult = await sendResponse.json();
-                console.log('✅ Gift sent successfully:', sendResult);
                 
                 // Only remove character from inventory after successful database call
                 inventoryItems.splice(characterIndex, 1);
