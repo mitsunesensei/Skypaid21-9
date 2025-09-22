@@ -4371,11 +4371,11 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Load characters from Railway database
-            loadCharactersFromDatabase();
-            
             // Initialize UI to logged-out state first
             initializeUI();
+            
+            // Load characters from Railway database
+            loadCharactersFromDatabase();
             
             // Restore login state if user was previously logged in
             restoreLoginState();
