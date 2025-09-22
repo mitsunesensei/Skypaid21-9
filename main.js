@@ -62,6 +62,7 @@ function createMainWindow() {
     mainWindow.once('ready-to-show', () => {
         mainWindow.show();
         console.log('🚀 SkyParty Desktop App Started!');
+        console.log('🎭 Avatar system initialized with unified character database');
     });
 
     // Open DevTools in development

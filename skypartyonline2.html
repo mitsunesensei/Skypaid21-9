@@ -6090,18 +6090,45 @@
         // Mailbox System
         let mailboxItems = [];
 
-        function loadMailbox() {
-            if (!currentUser) return;
+        async function loadMailbox() {
+            if (!currentUser || !currentUserId) return;
 
-            const mailboxData = localStorage.getItem(`mailbox_${currentUser}`);
-            if (mailboxData) {
-                try {
-                    mailboxItems = JSON.parse(mailboxData);
-                } catch (error) {
-                    console.error('Error parsing mailbox data:', error);
+            try {
+                console.log('📮 Loading mailbox from database for user:', currentUserId);
+                
+                const response = await fetch(`${RAILWAY_API_URL}/api/user/${currentUserId}/gifts`);
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success && result.gifts) {
+                        // Convert database gifts to mailbox format
+                        mailboxItems = result.gifts.map(gift => ({
+                            id: gift.id.toString(),
+                            sender: gift.sender_username,
+                            recipient: currentUser,
+                            itemType: gift.item_type,
+                            itemData: {
+                                name: gift.item_name,
+                                icon: gift.item_icon,
+                                description: gift.item_description,
+                                price: gift.item_price
+                            },
+                            message: gift.message,
+                            timestamp: gift.created_at,
+                            read: false, // Will be updated when user opens the gift
+                            claimed: gift.status === 'claimed'
+                        }));
+                        
+                        console.log('📮 Loaded', mailboxItems.length, 'gifts from database');
+                    } else {
+                        console.log('📮 No gifts found in database');
+                        mailboxItems = [];
+                    }
+                } else {
+                    console.error('❌ Failed to load mailbox from database');
                     mailboxItems = [];
                 }
-            } else {
+            } catch (error) {
+                console.error('❌ Error loading mailbox:', error);
                 mailboxItems = [];
             }
 
@@ -6284,126 +6311,107 @@
         async function acceptCharacterGift(item) {
             const character = item.itemData;
             
-            // Find the character ID from the character database
-            const characterFromDB = characterDatabase.find(char => char.name === character.name);
-            const characterId = characterFromDB ? characterFromDB.id : character.name.toLowerCase().replace(/\s+/g, '');
-            
-            // Add character to owned characters
-            if (!ownedCharacters.includes(characterId)) {
-                ownedCharacters.push(characterId);
-                await saveCharacterData();
-                updateCharacterCardStatuses();
+            try {
+                console.log('🎁 Claiming character gift:', character.name);
+                
+                // Claim gift via database API
+                const response = await fetch(`${RAILWAY_API_URL}/api/gifts/${item.id}/claim`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        userId: currentUserId
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('✅ Gift claimed successfully:', result);
+                    
+                    // Find the character ID from the character database
+                    const characterFromDB = characterDatabase.find(char => char.name === character.name);
+                    const characterId = characterFromDB ? characterFromDB.id : character.name.toLowerCase().replace(/\s+/g, '');
+                    
+                    // Add character to owned characters
+                    if (!ownedCharacters.includes(characterId)) {
+                        ownedCharacters.push(characterId);
+                        await saveCharacterData();
+                        updateCharacterCardStatuses();
+                    }
+                    
+                    // Add character to inventory
+                    const newInventoryItem = {
+                        id: `character_${characterId}_${Date.now()}`,
+                        type: 'character',
+                        name: character.name,
+                        icon: character.icon,
+                        description: character.description,
+                        price: character.price,
+                        acquiredDate: new Date().toISOString(),
+                        source: 'gift',
+                        quantity: 1
+                    };
+                    
+                    inventoryItems.push(newInventoryItem);
+                    saveInventory();
+                    
+                    // Update filtered items to include the new item
+                    filteredInventoryItems = [...inventoryItems];
+                    
+                    // Update inventory UI immediately
+                    updateInventoryUI();
+                    
+                    // Reload mailbox to get updated status
+                    await loadMailbox();
+                    
+                    alert(`✅ Character "${character.name}" has been added to your collection!`);
+                } else {
+                    const errorResult = await response.json();
+                    console.error('❌ Failed to claim gift:', errorResult);
+                    alert('❌ Failed to claim gift. Please try again.');
+                }
+            } catch (error) {
+                console.error('❌ Error claiming gift:', error);
+                alert('❌ Error claiming gift. Please try again.');
             }
-            
-            // Add character to inventory
-            const newInventoryItem = {
-                id: `character_${characterId}_${Date.now()}`,
-                type: 'character',
-                name: character.name,
-                icon: character.icon,
-                description: character.description,
-                price: character.price,
-                acquiredDate: new Date().toISOString(),
-                source: 'gift',
-                quantity: 1
-            };
-            
-            inventoryItems.push(newInventoryItem);
-            saveInventory();
-            
-            // Update filtered items to include the new item
-            filteredInventoryItems = [...inventoryItems];
-            
-            // Update inventory UI immediately
-            updateInventoryUI();
-            
-            // Mark as claimed and read
-            item.claimed = true;
-            item.read = true;
-            saveMailbox();
-            updateMailboxUI();
-            updateMailboxNotificationDot();
-            
-            alert(`✅ Character "${character.name}" has been added to your collection!`);
         }
 
-        function rejectCharacterGift(item) {
+        async function rejectCharacterGift(item) {
             const character = item.itemData;
             const sender = item.sender;
             
-            // Get sender's email
-            const mappings = getUsernameMappings();
-            const senderEmail = mappings[sender];
-            
-            if (senderEmail) {
-                // Add character back to sender's inventory
-                const senderInventoryData = localStorage.getItem(`inventory_${senderEmail}`);
-                let senderInventory = [];
-                if (senderInventoryData) {
-                    try {
-                        senderInventory = JSON.parse(senderInventoryData);
-                    } catch (error) {
-                        senderInventory = [];
-                    }
-                }
+            try {
+                console.log('❌ Rejecting character gift:', character.name);
                 
-                // Find the character ID from the character database
-                const characterFromDB = characterDatabase.find(char => char.name === character.name);
-                const characterId = characterFromDB ? characterFromDB.id : character.name.toLowerCase().replace(/\s+/g, '');
-                
-                const returnedItem = {
-                    id: `character_${characterId}_${Date.now()}`,
-                    type: 'character',
-                    name: character.name,
-                    icon: character.icon,
-                    description: character.description,
-                    price: character.price,
-                    acquiredDate: new Date().toISOString(),
-                    source: 'returned',
-                    quantity: 1
-                };
-                
-                senderInventory.push(returnedItem);
-                localStorage.setItem(`inventory_${senderEmail}`, JSON.stringify(senderInventory));
-                
-                // Send notification to sender
-                const senderMailboxData = localStorage.getItem(`mailbox_${senderEmail}`);
-                let senderMailbox = [];
-                if (senderMailboxData) {
-                    try {
-                        senderMailbox = JSON.parse(senderMailboxData);
-                    } catch (error) {
-                        senderMailbox = [];
-                    }
-                }
-                
-                const rejectionNotification = {
-                    id: `rejection_${Date.now()}`,
-                    sender: getCurrentUsername() || 'Unknown User',
-                    recipient: sender,
-                    itemType: 'message',
-                    itemData: {
-                        name: 'Gift Rejected',
-                        icon: '❌'
+                // Reject gift via database API
+                const response = await fetch(`${RAILWAY_API_URL}/api/gifts/${item.id}/reject`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
                     },
-                    message: `Your gift of ${character.name} was rejected and returned to your inventory.`,
-                    timestamp: new Date().toISOString(),
-                    read: false,
-                    claimed: false
-                };
+                    body: JSON.stringify({
+                        userId: currentUserId
+                    })
+                });
                 
-                senderMailbox.unshift(rejectionNotification);
-                localStorage.setItem(`mailbox_${senderEmail}`, JSON.stringify(senderMailbox));
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('✅ Gift rejected successfully:', result);
+                    
+                    // Reload mailbox to get updated status
+                    await loadMailbox();
+                    
+                    alert(`❌ Gift rejected! The character has been returned to ${sender}.`);
+                } else {
+                    const errorResult = await response.json();
+                    console.error('❌ Failed to reject gift:', errorResult);
+                    alert('❌ Failed to reject gift. Please try again.');
+                }
+            } catch (error) {
+                console.error('❌ Error rejecting gift:', error);
+                alert('❌ Error rejecting gift. Please try again.');
             }
-            
-            // Mark as claimed (rejected) and read
-            item.claimed = true;
-            item.read = true;
-            saveMailbox();
-            updateMailboxUI();
-            updateMailboxNotificationDot();
-            
-            alert(`❌ Gift rejected! The character has been returned to ${sender}'s inventory.`);
         }
 
         async function claimCreditsGift(item) {
@@ -6681,12 +6689,20 @@
             if (characterIndex !== -1) {
                 console.log('Removing character:', inventoryItems[characterIndex]);
                 
-                // Check if this is the currently equipped character
+                // Check if this is the currently equipped character and if we'll have any left
                 const characterId = window.giftCharacterData.name.toLowerCase().replace(/\s+/g, '');
                 const isCurrentlyEquipped = currentCharacter === characterId;
                 
-                if (isCurrentlyEquipped) {
-                    console.log('⚠️ Sending currently equipped character, switching to kitty');
+                // Count how many copies of this character we currently have
+                const currentQuantity = inventoryItems.filter(item => 
+                    item.type === 'character' && item.name === window.giftCharacterData.name
+                ).length;
+                
+                console.log('Current quantity of', window.giftCharacterData.name, ':', currentQuantity);
+                
+                // Only switch to kitty if this is our current character AND we'll have 0 left after gifting
+                if (isCurrentlyEquipped && currentQuantity <= 1) {
+                    console.log('⚠️ Sending last copy of currently equipped character, switching to kitty');
                     currentCharacter = 'kitty';
                     updateAvatar();
                     
@@ -6698,6 +6714,8 @@
                     
                     // Save character data changes
                     await saveCharacterData();
+                } else if (isCurrentlyEquipped && currentQuantity > 1) {
+                    console.log('✅ Sending character but still have', currentQuantity - 1, 'copies left, keeping current character');
                 }
                 
                 inventoryItems.splice(characterIndex, 1);
@@ -6714,55 +6732,52 @@
                 return; // Exit early if character not found
             }
             
-            // Send gift to recipient
+            // Send gift to recipient via Railway database
             const giftMessage = document.getElementById('giftMessage').value || '';
             
             try {
-                // Get recipient's user data from Railway to get their email
+                // Get recipient's user data from Railway
                 const recipientResponse = await fetch(`${RAILWAY_API_URL}/api/users/search?query=${encodeURIComponent(selectedGiftRecipient)}`);
                 if (recipientResponse.ok) {
                     const recipientResult = await recipientResponse.json();
                     if (recipientResult.success && recipientResult.users && recipientResult.users.length > 0) {
                         const recipientUser = recipientResult.users.find(user => user.username === selectedGiftRecipient);
                         if (recipientUser) {
-                            // Use the recipient's email for local storage (fallback system)
-                            const recipientEmail = recipientUser.email;
+                            console.log('🎁 Sending gift to:', selectedGiftRecipient, 'ID:', recipientUser.id);
                             
-                            // Add gift to recipient's mailbox (local storage fallback)
-                            const recipientMailboxData = localStorage.getItem(`mailbox_${recipientEmail}`);
-                            let recipientMailbox = [];
-                            if (recipientMailboxData) {
-                                try {
-                                    recipientMailbox = JSON.parse(recipientMailboxData);
-                                } catch (error) {
-                                    recipientMailbox = [];
-                                }
-                            }
-                            
-                            const giftItem = {
-                                id: `character_gift_${Date.now()}`,
-                                sender: await getCurrentUsername(),
-                                recipient: selectedGiftRecipient,
-                                itemType: 'character',
-                                itemData: {
-                                    name: window.giftCharacterData.name,
-                                    icon: window.giftCharacterData.icon,
-                                    description: window.giftCharacterData.description,
-                                    price: window.giftCharacterData.price
+                            // Send gift via Railway database API
+                            const giftResponse = await fetch(`${RAILWAY_API_URL}/api/gifts/send`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
                                 },
-                                message: giftMessage,
-                                timestamp: new Date().toISOString(),
-                                read: false,
-                                claimed: false
-                            };
+                                body: JSON.stringify({
+                                    senderId: currentUserId,
+                                    recipientId: recipientUser.id,
+                                    itemType: 'character',
+                                    itemData: {
+                                        name: window.giftCharacterData.name,
+                                        icon: window.giftCharacterData.icon,
+                                        description: window.giftCharacterData.description,
+                                        price: window.giftCharacterData.price
+                                    },
+                                    message: giftMessage
+                                })
+                            });
                             
-                            recipientMailbox.unshift(giftItem);
-                            localStorage.setItem(`mailbox_${recipientEmail}`, JSON.stringify(recipientMailbox));
-                            
-                            alert(`✅ Gift Sent!\n\n${window.giftCharacterData.name} has been sent to ${selectedGiftRecipient}!\n\nThey will receive it in their mailbox.`);
-                            
-                            // Close modal
-                            closeGiftSendingModal();
+                            if (giftResponse.ok) {
+                                const giftResult = await giftResponse.json();
+                                console.log('✅ Gift sent successfully:', giftResult);
+                                
+                                alert(`✅ Gift Sent!\n\n${window.giftCharacterData.name} has been sent to ${selectedGiftRecipient}!\n\nThey will receive it in their mailbox immediately.`);
+                                
+                                // Close modal
+                                closeGiftSendingModal();
+                            } else {
+                                const errorResult = await giftResponse.json();
+                                console.error('❌ Failed to send gift:', errorResult);
+                                alert('❌ Failed to send gift. Please try again.');
+                            }
                         } else {
                             alert('❌ User not found. Please check the username and try again.');
                         }

@@ -1186,6 +1186,25 @@ async function createTables() {
             )
         `);
         
+        // Create gifts table (gift system)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS gifts (
+                id SERIAL PRIMARY KEY,
+                sender_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                recipient_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                item_type VARCHAR(50) NOT NULL DEFAULT 'character',
+                item_name VARCHAR(100) NOT NULL,
+                item_icon VARCHAR(10),
+                item_description TEXT,
+                item_price INTEGER DEFAULT 0,
+                message TEXT,
+                status VARCHAR(20) DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                claimed_at TIMESTAMP,
+                expires_at TIMESTAMP
+            )
+        `);
+        
         // Insert default characters
         await client.query(`
             INSERT INTO characters (id, name, icon, description, price, rarity, category) VALUES
@@ -1297,6 +1316,163 @@ app.post('/api/user/:userId/characters/:characterId', async (req, res) => {
     } catch (error) {
         console.error('Error adding character:', error);
         res.status(500).json({ success: false, error: 'Failed to add character' });
+    }
+});
+
+// Gift API endpoints
+app.post('/api/gifts/send', async (req, res) => {
+    try {
+        const { senderId, recipientId, itemType, itemData, message } = req.body;
+        
+        if (!senderId || !recipientId || !itemData) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Missing required fields' 
+            });
+        }
+        
+        const client = await pool.connect();
+        
+        // Insert gift into database
+        const result = await client.query(`
+            INSERT INTO gifts (sender_id, recipient_id, item_type, item_name, item_icon, item_description, item_price, message)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            RETURNING id, created_at
+        `, [
+            senderId, 
+            recipientId, 
+            itemType, 
+            itemData.name, 
+            itemData.icon, 
+            itemData.description, 
+            itemData.price, 
+            message
+        ]);
+        
+        client.release();
+        
+        res.json({ 
+            success: true, 
+            giftId: result.rows[0].id,
+            createdAt: result.rows[0].created_at,
+            message: 'Gift sent successfully' 
+        });
+    } catch (error) {
+        console.error('Error sending gift:', error);
+        res.status(500).json({ success: false, error: 'Failed to send gift' });
+    }
+});
+
+app.get('/api/user/:userId/gifts', async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const client = await pool.connect();
+        
+        const result = await client.query(`
+            SELECT g.*, u.username as sender_username
+            FROM gifts g
+            JOIN users u ON g.sender_id = u.id
+            WHERE g.recipient_id = $1 AND g.status = 'pending'
+            ORDER BY g.created_at DESC
+        `, [userId]);
+        
+        client.release();
+        
+        res.json({ 
+            success: true, 
+            gifts: result.rows 
+        });
+    } catch (error) {
+        console.error('Error fetching gifts:', error);
+        res.status(500).json({ success: false, error: 'Failed to fetch gifts' });
+    }
+});
+
+app.post('/api/gifts/:giftId/claim', async (req, res) => {
+    try {
+        const giftId = req.params.giftId;
+        const { userId } = req.body;
+        
+        const client = await pool.connect();
+        
+        // Get gift details
+        const giftResult = await client.query(`
+            SELECT * FROM gifts WHERE id = $1 AND recipient_id = $2 AND status = 'pending'
+        `, [giftId, userId]);
+        
+        if (giftResult.rows.length === 0) {
+            client.release();
+            return res.status(404).json({ success: false, error: 'Gift not found or already claimed' });
+        }
+        
+        const gift = giftResult.rows[0];
+        
+        // Update gift status
+        await client.query(`
+            UPDATE gifts 
+            SET status = 'claimed', claimed_at = CURRENT_TIMESTAMP
+            WHERE id = $1
+        `, [giftId]);
+        
+        // Add character to user's inventory if it's a character gift
+        if (gift.item_type === 'character') {
+            // Find character ID
+            const characterResult = await client.query(`
+                SELECT id FROM characters WHERE name = $1
+            `, [gift.item_name]);
+            
+            if (characterResult.rows.length > 0) {
+                const characterId = characterResult.rows[0].id;
+                
+                // Add to user_characters
+                await client.query(`
+                    INSERT INTO user_characters (user_id, character_id, acquired_via)
+                    VALUES ($1, $2, 'gift')
+                    ON CONFLICT (user_id, character_id) 
+                    DO UPDATE SET quantity = user_characters.quantity + 1
+                `, [userId, characterId]);
+            }
+        }
+        
+        client.release();
+        
+        res.json({ 
+            success: true, 
+            message: 'Gift claimed successfully' 
+        });
+    } catch (error) {
+        console.error('Error claiming gift:', error);
+        res.status(500).json({ success: false, error: 'Failed to claim gift' });
+    }
+});
+
+app.post('/api/gifts/:giftId/reject', async (req, res) => {
+    try {
+        const giftId = req.params.giftId;
+        const { userId } = req.body;
+        
+        const client = await pool.connect();
+        
+        // Update gift status to rejected
+        const result = await client.query(`
+            UPDATE gifts 
+            SET status = 'rejected'
+            WHERE id = $1 AND recipient_id = $2 AND status = 'pending'
+        `, [giftId, userId]);
+        
+        client.release();
+        
+        if (result.rowCount === 0) {
+            return res.status(404).json({ success: false, error: 'Gift not found or already processed' });
+        }
+        
+        res.json({ 
+            success: true, 
+            message: 'Gift rejected successfully' 
+        });
+    } catch (error) {
+        console.error('Error rejecting gift:', error);
+        res.status(500).json({ success: false, error: 'Failed to reject gift' });
     }
 });
 
