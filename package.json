@@ -7,22 +7,17 @@
     "start": "node server.js",
     "server": "node server.js"
   },
-  "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "pg": "^8.11.3",
-    "bcrypt": "^5.1.1",
-    "jsonwebtoken": "^9.0.2"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
   "keywords": [
-    "skyparty",
-    "game-launcher",
+    "backend",
     "api",
-    "backend"
+    "game-server",
+    "skyparty"
   ],
   "author": "SkyParty Team",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "express": "4.18.2",
+    "cors": "2.8.5",
+    "pg": "8.16.3"
+  }
 }
