@@ -648,119 +648,7 @@ app.get('/api/mailbox/:userId', async (req, res) => {
     }
 });
 
-app.post('/api/mailbox/send-gift', async (req, res) => {
-    try {
-        const { senderId, recipientId, giftType, giftData, message } = req.body;
-        
-        // Get sender and recipient info
-        const users = await Database.read('users');
-        const sender = Object.values(users).find(u => u.id === senderId);
-        const recipient = Object.values(users).find(u => u.id === recipientId);
-        
-        if (!sender || !recipient) {
-            return res.status(404).json({ 
-                success: false, 
-                error: 'Sender or recipient not found' 
-            });
-        }
 
-        // Create gift item
-        const gift = {
-            id: crypto.randomUUID(),
-            senderId,
-            senderUsername: sender.username,
-            recipientId,
-            giftType,
-            giftData,
-            message: message || '',
-            timestamp: new Date().toISOString(),
-            read: false,
-            claimed: false
-        };
-
-        // Add to recipient's mailbox
-        const recipientMailbox = await Database.read(`mailbox_${recipientId}`);
-        recipientMailbox.unshift(gift);
-        await Database.write(`mailbox_${recipientId}`, recipientMailbox);
-
-        res.json({ success: true, message: 'Gift sent successfully' });
-
-    } catch (error) {
-        console.error('Gift send error:', error);
-        res.status(500).json({ success: false, error: 'Failed to send gift' });
-    }
-});
-
-app.post('/api/mailbox/claim-gift', async (req, res) => {
-    try {
-        const { userId, giftId, action } = req.body; // action: 'accept' or 'reject'
-        
-        const mailbox = await Database.read(`mailbox_${userId}`);
-        const giftIndex = mailbox.findIndex(gift => gift.id === giftId);
-        
-        if (giftIndex === -1) {
-            return res.status(404).json({ 
-                success: false, 
-                error: 'Gift not found' 
-            });
-        }
-
-        const gift = mailbox[giftIndex];
-        
-        if (action === 'accept') {
-            // Add gift to user's inventory or credits
-            if (gift.giftType === 'character') {
-                const inventory = await Database.read(`inventory_${userId}`);
-                inventory.push({
-                    ...gift.giftData,
-                    id: crypto.randomUUID(),
-                    acquiredDate: new Date().toISOString(),
-                    source: 'gift'
-                });
-                await Database.write(`inventory_${userId}`, inventory);
-                
-                // Update user's owned characters
-                const users = await Database.read('users');
-                const user = Object.values(users).find(u => u.id === userId);
-                if (user && !user.ownedCharacters.includes(gift.giftData.characterId)) {
-                    user.ownedCharacters.push(gift.giftData.characterId);
-                    users[user.email] = user;
-                    await Database.write('users', users);
-                }
-            } else if (gift.giftType === 'credits') {
-                // Add credits to user account
-                await this.updateUserCredits(userId, gift.giftData.amount, 'add');
-            }
-            
-            gift.claimed = true;
-            gift.read = true;
-        } else if (action === 'reject') {
-            // Return gift to sender
-            if (gift.giftType === 'character') {
-                const senderInventory = await Database.read(`inventory_${gift.senderId}`);
-                senderInventory.push({
-                    ...gift.giftData,
-                    id: crypto.randomUUID(),
-                    acquiredDate: new Date().toISOString(),
-                    source: 'returned'
-                });
-                await Database.write(`inventory_${gift.senderId}`, senderInventory);
-            }
-            
-            gift.claimed = true;
-            gift.read = true;
-        }
-
-        mailbox[giftIndex] = gift;
-        await Database.write(`mailbox_${userId}`, mailbox);
-
-        res.json({ success: true, message: `Gift ${action}ed successfully` });
-
-    } catch (error) {
-        console.error('Gift claim error:', error);
-        res.status(500).json({ success: false, error: 'Failed to process gift' });
-    }
-});
 
 // Game Statistics Routes
 app.post('/api/games/play', async (req, res) => {
@@ -1203,7 +1091,8 @@ async function createTables() {
             )
         `);
         
-        // Create gifts table (gift system)
+        
+        // Create gifts table (new clean gift system)
         await client.query(`
             CREATE TABLE IF NOT EXISTS gifts (
                 id SERIAL PRIMARY KEY,
@@ -1217,12 +1106,9 @@ async function createTables() {
                 message TEXT,
                 status VARCHAR(20) DEFAULT 'pending',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                claimed_at TIMESTAMP,
-                expires_at TIMESTAMP
+                claimed_at TIMESTAMP
             )
         `);
-        
-        // Insert default characters
         await client.query(`
             INSERT INTO characters (id, name, icon, description, price, rarity, category) VALUES
             ('kitty', 'Kitty', '🐱', 'A cute and friendly kitty character. Perfect for beginners!', 0, 'common', 'starter'),
@@ -1336,7 +1222,8 @@ app.post('/api/user/:userId/characters/:characterId', async (req, res) => {
     }
 });
 
-// Gift API endpoints
+
+// Clean Gift System API endpoints
 app.post('/api/gifts/send', async (req, res) => {
     try {
         const { senderId, recipientId, itemType, itemData, message } = req.body;
@@ -1363,7 +1250,7 @@ app.post('/api/gifts/send', async (req, res) => {
             itemData.icon, 
             itemData.description, 
             itemData.price, 
-            message
+            message || ''
         ]);
         
         client.release();
@@ -1509,8 +1396,6 @@ app.post('/api/gifts/:giftId/reject', async (req, res) => {
         res.status(500).json({ success: false, error: 'Failed to reject gift' });
     }
 });
-
-// Start server
 async function startServer() {
     await ensureDataDir();
     await createTables();

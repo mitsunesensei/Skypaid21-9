@@ -1713,119 +1713,6 @@
         </div>
     </div>
 
-    <!-- Gift Sending Modal -->
-    <div class="modal-overlay" id="giftSendingModal">
-        <div class="modal-window" style="max-width: 500px;">
-            <div class="modal-title-bar">
-                <div class="modal-title-bar-icon">🎁</div>
-                <div class="modal-title-bar-text">Send Gift</div>
-                <div class="modal-window-controls">
-                    <div class="modal-window-control" onclick="closeGiftSendingModal()">×</div>
-                </div>
-            </div>
-            
-            <div class="modal-content">
-                <h3 style="color: #1f4e79; margin-bottom: 16px;">Send this to:</h3>
-                
-                <!-- Gift Item Display -->
-                <div class="wallet-panel" style="margin-bottom: 16px;">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <div id="giftItemIcon" style="font-size: 32px;">🎁</div>
-                        <div>
-                            <div id="giftItemName" style="font-weight: bold; color: #1f4e79; font-size: 14px;">Character Name</div>
-                            <div style="font-size: 10px; color: #666;">Ready to send</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Recipient Search -->
-                <div class="wallet-panel" style="margin-bottom: 16px;">
-                    <h4 style="color: #1f4e79; margin-bottom: 12px;">Search Recipient</h4>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <input type="text" class="form-input" id="giftRecipientSearch" placeholder="Search for username..." style="flex: 1;" oninput="searchGiftRecipients()">
-                        <button class="xp-button" onclick="clearGiftRecipientSearch()">Clear</button>
-                    </div>
-                    
-                    <!-- Search Results -->
-                    <div id="giftRecipientResults" style="margin-top: 12px; display: none;">
-                        <div id="giftRecipientList" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px;">
-                            <!-- Recipient results will be populated here -->
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Selected Recipient -->
-                <div id="giftSelectedRecipient" class="wallet-panel" style="margin-bottom: 16px; display: none;">
-                    <h4 style="color: #1f4e79; margin-bottom: 8px;">Selected Recipient</h4>
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <span id="giftSelectedRecipientAvatar" style="font-size: 24px;">👤</span>
-                        <div>
-                            <div id="giftSelectedRecipientName" style="font-weight: bold; color: #1f4e79;">Username</div>
-                            <div style="font-size: 10px; color: #666;">Ready to receive gift</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Gift Message -->
-                <div class="wallet-panel" style="margin-bottom: 16px;">
-                    <h4 style="color: #1f4e79; margin-bottom: 8px;">Gift Message (Optional)</h4>
-                    <textarea class="form-input" id="giftMessage" placeholder="Add a personal message..." rows="3" style="resize: vertical;"></textarea>
-                </div>
-                
-                <!-- Action Buttons -->
-                <div class="modal-buttons">
-                    <button class="xp-button" onclick="closeGiftSendingModal()">Cancel</button>
-                    <button class="xp-button primary" id="sendGiftBtn" onclick="sendGiftToRecipient()" style="display: none;">Send Gift</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Gift Acceptance Modal -->
-    <div class="modal-overlay" id="giftAcceptanceModal">
-        <div class="modal-window" style="max-width: 500px;">
-            <div class="modal-title-bar">
-                <div class="modal-title-bar-icon">🎁</div>
-                <div class="modal-title-bar-text">Gift Received</div>
-                <div class="modal-window-controls">
-                    <div class="modal-window-control" onclick="closeGiftAcceptanceModal()">×</div>
-                </div>
-            </div>
-            
-            <div class="modal-content">
-                <h3 style="color: #1f4e79; margin-bottom: 16px;">You received a gift!</h3>
-                
-                <!-- Gift Details -->
-                <div class="wallet-panel" style="margin-bottom: 16px;">
-                    <div style="display: flex; align-items: center; gap: 16px;">
-                        <div id="giftAcceptanceIcon" style="font-size: 48px;">🎁</div>
-                        <div>
-                            <div id="giftAcceptanceFrom" style="font-weight: bold; color: #1f4e79; font-size: 14px; margin-bottom: 4px;">From: Username</div>
-                            <div id="giftAcceptanceItem" style="font-size: 12px; color: #666; margin-bottom: 4px;">Character Name</div>
-                            <div id="giftAcceptanceMessage" style="font-size: 11px; color: #888; font-style: italic;"></div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Gift Description -->
-                <div class="wallet-panel" style="margin-bottom: 16px;">
-                    <h4 style="color: #1f4e79; margin-bottom: 8px;">Gift Details</h4>
-                    <div id="giftAcceptanceDescription" style="font-size: 11px; line-height: 1.4; margin-bottom: 8px;"></div>
-                    <div style="font-size: 10px; color: #666;">
-                        <div>• Accept: Add to your inventory</div>
-                        <div>• Reject: Return to sender</div>
-                    </div>
-                </div>
-                
-                <!-- Action Buttons -->
-                <div class="modal-buttons">
-                    <button class="xp-button" onclick="closeGiftAcceptanceModal()">Cancel</button>
-                    <button class="xp-button" onclick="rejectGiftFromModal()" style="background: #ff4444; color: white;">Reject</button>
-                    <button class="xp-button primary" onclick="acceptGiftFromModal()">Accept</button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- User Profile Modal -->
     <div class="modal-overlay" id="userProfileModal">
@@ -4337,11 +4224,9 @@
             }
         }
 
+        // Simple gift function
         function sendGift() {
-            const username = window.currentViewedUser;
-            if (username) {
-                alert(`🎁 Send Gift to ${username}\n\nThis feature will allow you to send gifts, credits, or items to ${username}.\n\nComing soon!`);
-            }
+            alert('🎁 Gift System\n\nGift sending feature is coming soon!\n\nYou will be able to send characters and items to other players.');
         }
 
         function reportUser() {
@@ -4637,13 +4522,6 @@
                         selectBtn.onclick = () => selectCharacter(characterName).catch(console.error);
                         modalButtons.appendChild(selectBtn);
                         
-                        // Add Gift button with proper ID
-                        const giftBtn = document.createElement('button');
-                        giftBtn.className = 'xp-button primary';
-                        giftBtn.id = 'characterGiftBtn';
-                        giftBtn.textContent = 'Gift';
-                        giftBtn.onclick = () => giftCharacter(characterName);
-                        modalButtons.appendChild(giftBtn);
                     }
                     
                     // Save character data to Railway
@@ -4732,39 +4610,6 @@
             }
         }
 
-        function giftCharacter(characterName) {
-            const character = characterDatabase.find(char => char.id === characterName);
-            if (!character) return;
-            
-            // Prevent gifting the default kitty character
-            if (characterName === 'kitty') {
-                alert('❌ You cannot gift the default Kitty character.');
-                return;
-            }
-            
-            // Check if current user has this character
-            const characterQuantity = inventoryItems.filter(item => 
-                item.type === 'character' && item.name === character.name
-            ).length;
-            
-            if (characterQuantity === 0) {
-                alert('❌ You don\'t have this character in your inventory to gift.');
-                return;
-            }
-            
-            // Store the character to gift
-            window.giftCharacterData = {
-                name: character.name,
-                icon: character.icon,
-                description: character.description,
-                price: character.price,
-                id: characterName
-            };
-            
-            // Close character details modal and open gift sending modal
-            closeCharacterDetailsModal();
-            openGiftSendingModal();
-        }
 
         function selectCharacterFromInventory() {
             // This will be called when clicking Select from inventory
@@ -4775,20 +4620,6 @@
             }
         }
 
-        function giftCharacterFromInventory() {
-            // This will be called when clicking Gift from inventory
-            const characterName = window.currentInventoryCharacter;
-            if (characterName) {
-                // Prevent gifting the default kitty character
-                if (characterName === 'kitty') {
-                    alert('❌ You cannot gift the default Kitty character.');
-                    closeCharacterDetailsModal();
-                    return;
-                }
-                giftCharacter(characterName);
-                closeCharacterDetailsModal();
-            }
-        }
 
         function showCharacterDetailsFromInventory(characterName) {
             let character;
@@ -5884,37 +5715,6 @@
             try {
                 console.log('📮 Loading mailbox for user ID:', currentUserId);
                 
-                const response = await fetch(`${RAILWAY_API_URL}/api/user/${currentUserId}/gifts`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                if (response.ok) {
-                    const result = await response.json();
-                    console.log('📮 Mailbox data from Railway:', result);
-                    
-                    if (result.success && result.gifts) {
-                        // Map Railway gift format to local mailbox format
-                        mailboxItems = result.gifts.map(gift => ({
-                            id: gift.id,
-                            sender: gift.sender_username,
-                            recipient: gift.recipient_username,
-                            itemType: gift.item_type,
-                            itemData: gift.item_data,
-                            message: gift.message,
-                            timestamp: gift.created_at,
-                            read: gift.status === 'read',
-                            claimed: gift.status === 'claimed'
-                        }));
-                        
-                        console.log('📮 Mapped mailbox items:', mailboxItems);
-                    } else {
-                        mailboxItems = [];
-                    }
-                } else {
-                    console.error('❌ Failed to load mailbox from Railway');
                     mailboxItems = [];
                 }
             } catch (error) {
@@ -6278,30 +6078,7 @@
         // Gift Sending Modal Functions
         let selectedGiftRecipient = null;
 
-        function openGiftSendingModal() {
-            if (!window.giftCharacterData) return;
-            
-            // Update gift item display
-            document.getElementById('giftItemIcon').textContent = window.giftCharacterData.icon;
-            document.getElementById('giftItemName').textContent = window.giftCharacterData.name;
-            
-            // Clear previous selections
-            clearGiftRecipientSearch();
-            selectedGiftRecipient = null;
-            document.getElementById('giftSelectedRecipient').style.display = 'none';
-            document.getElementById('sendGiftBtn').style.display = 'none';
-            document.getElementById('giftMessage').value = '';
-            
-            // Show modal
-            document.getElementById('giftSendingModal').style.display = 'block';
-        }
 
-        function closeGiftSendingModal() {
-            document.getElementById('giftSendingModal').style.display = 'none';
-            clearGiftRecipientSearch();
-            selectedGiftRecipient = null;
-            window.giftCharacterData = null;
-        }
 
         async function searchGiftRecipients() {
             const searchTerm = document.getElementById('giftRecipientSearch').value.toLowerCase().trim();
