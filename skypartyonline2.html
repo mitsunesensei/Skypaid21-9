@@ -3729,7 +3729,7 @@
             const selectBtn = document.getElementById('characterSelectBtn');
             const giftBtn = document.getElementById('characterGiftBtn');
             
-            if (!selectBtn || !giftBtn) {
+            if (!selectBtn) {
                 console.error('Character modal buttons not found');
                 return;
             }
@@ -3740,17 +3740,12 @@
                     closeCharacterDetailsModal();
                     showSection('login');
                 };
-                giftBtn.style.display = 'none';
             } else if (character.owned) {
                 selectBtn.textContent = 'Select';
                 selectBtn.onclick = () => selectCharacter(characterName).catch(console.error);
-                giftBtn.textContent = 'Gift';
-                giftBtn.onclick = () => giftCharacter(characterName);
-                giftBtn.style.display = 'inline-block';
             } else {
                 selectBtn.textContent = `Buy (${character.price} GC)`;
                 selectBtn.onclick = () => purchaseCharacter(characterName);
-                giftBtn.style.display = 'none';
             }
 
             // Show the modal
@@ -4663,10 +4658,6 @@
             
             selectBtn.textContent = currentCharacter === characterName ? 'Selected' : 'Select';
             selectBtn.onclick = () => selectCharacterFromInventory();
-            
-            giftBtn.textContent = 'Gift';
-            giftBtn.onclick = () => giftCharacterFromInventory();
-            giftBtn.style.display = 'inline-block';
 
             // Show the modal
             document.getElementById('characterDetailsModal').style.display = 'block';
@@ -5715,8 +5706,8 @@
             try {
                 console.log('📮 Loading mailbox for user ID:', currentUserId);
                 
-                    mailboxItems = [];
-                }
+                // For now, just set empty mailbox
+                mailboxItems = [];
             } catch (error) {
                 console.error('❌ Error loading mailbox:', error);
                 mailboxItems = [];
@@ -6080,7 +6071,14 @@
 
 
 
-        async function searchGiftRecipients() {
+        // Gift functions removed - placeholder
+        function searchGiftRecipients() { console.log('Gift system disabled'); }
+        function createGiftRecipientCard() { console.log('Gift system disabled'); }
+        function selectGiftRecipient() { console.log('Gift system disabled'); }
+        function sendGiftToRecipient() { console.log('Gift system disabled'); }
+        function closeGiftAcceptanceModal() { console.log('Gift system disabled'); }
+        function acceptGiftFromModal() { console.log('Gift system disabled'); }
+        function rejectGiftFromModal() { console.log('Gift system disabled'); }
             const searchTerm = document.getElementById('giftRecipientSearch').value.toLowerCase().trim();
             const recipientResults = document.getElementById('giftRecipientResults');
             const recipientList = document.getElementById('giftRecipientList');
