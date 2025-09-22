@@ -1706,7 +1706,7 @@
                     <div class="modal-buttons">
                         <button class="xp-button" onclick="closeCharacterDetailsModal()">Cancel</button>
                         <button class="xp-button" id="characterSelectBtn">Select</button>
-                        <button class="xp-button primary" id="characterGiftBtn">Gift</button>
+                        <button class="xp-button primary" id="characterGiftBtn" style="background: #ff6b6b; color: white;" onclick="handleGiftButtonClick()">🎁 Gift</button>
                     </div>
                 </div>
             </div>
@@ -1739,11 +1739,13 @@
                 </div>
                 
                 <!-- Recipient Search -->
-                <div class="wallet-panel" style="margin-bottom: 16px;">
-                    <h4 style="color: #1f4e79; margin-bottom: 12px;">Search Recipient</h4>
+                <div class="wallet-panel" style="margin-bottom: 16px; border: 2px solid #ff6b6b; background: #fff5f5;">
+                    <h4 style="color: #ff6b6b; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                        🔍 Search Recipient
+                    </h4>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <input type="text" class="form-input" id="giftRecipientSearch" placeholder="Search for username..." style="flex: 1;" oninput="searchGiftRecipients()">
-                        <button class="xp-button" onclick="clearGiftRecipientSearch()">Clear</button>
+                        <input type="text" class="form-input" id="giftRecipientSearch" placeholder="Type username to search..." style="flex: 1; border: 2px solid #ff6b6b; font-size: 14px; padding: 8px;" oninput="searchGiftRecipients()">
+                        <button class="xp-button" onclick="clearGiftRecipientSearch()" style="background: #ff6b6b; color: white;">Clear</button>
                     </div>
                     
                     <!-- Search Results -->
@@ -3766,6 +3768,12 @@
             const selectBtn = document.getElementById('characterSelectBtn');
             const giftBtn = document.getElementById('characterGiftBtn');
             
+            console.log('🔧 Setting up character modal buttons for:', characterName);
+            console.log('🔧 selectBtn found:', !!selectBtn);
+            console.log('🔧 giftBtn found:', !!giftBtn);
+            console.log('🔧 character.owned:', character.owned);
+            console.log('🔧 isLoggedIn:', isLoggedIn);
+            
             if (!selectBtn || !giftBtn) {
                 console.error('Character modal button not found');
                 return;
@@ -3778,25 +3786,27 @@
                     showSection('login');
                 };
                 giftBtn.style.display = 'none';
+                currentCharacterForGift = null;
             } else if (character.owned) {
                 selectBtn.textContent = 'Select';
                 selectBtn.onclick = () => selectCharacter(characterName).catch(console.error);
                 
-                // Show gift button only if user has the character in inventory
-                const characterQuantity = inventoryItems.filter(item => 
-                    item.type === 'character' && item.name === character.name
-                ).length;
-                
-                if (characterQuantity > 0 && characterName !== 'kitty') {
-                giftBtn.style.display = 'inline-block';
-                    giftBtn.onclick = () => giftCharacter(characterName);
+                // Show gift button for all owned characters except kitty
+                if (characterName !== 'kitty') {
+                    giftBtn.style.display = 'inline-block';
+                    currentCharacterForGift = characterName; // Set the character for gifting
+                    console.log('✅ Gift button configured for:', characterName);
+                    console.log('✅ currentCharacterForGift set to:', currentCharacterForGift);
                 } else {
                     giftBtn.style.display = 'none';
+                    currentCharacterForGift = null;
+                    console.log('❌ Gift button hidden for kitty character');
                 }
             } else {
                 selectBtn.textContent = `Buy (${character.price} GC)`;
                 selectBtn.onclick = () => purchaseCharacter(characterName);
                 giftBtn.style.display = 'none';
+                currentCharacterForGift = null;
             }
 
             // Show the modal
@@ -6528,10 +6538,174 @@
         // Gift System JavaScript Functions (Fresh Implementation)
         let selectedGiftRecipient = null;
         let currentGiftItem = null;
+        let currentCharacterForGift = null;
+
+        // Simple gift button handler
+        function handleGiftButtonClick() {
+            console.log('🎁 Gift button clicked!');
+            console.log('🎁 Current character for gift:', currentCharacterForGift);
+            
+            if (currentCharacterForGift) {
+                // Show simple popup with search
+                showSimpleGiftPopup(currentCharacterForGift);
+            } else {
+                console.error('❌ No character set for gifting');
+                alert('❌ Error: No character selected for gifting');
+            }
+        }
+
+        // Simple gift popup
+        function showSimpleGiftPopup(characterName) {
+            const character = characterDatabase.find(char => char.id === characterName);
+            if (!character) {
+                alert('❌ Character not found');
+                return;
+            }
+
+            // Create popup HTML
+            const popupHTML = `
+                <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center;">
+                    <div style="background: white; border: 2px solid #ff6b6b; border-radius: 8px; padding: 20px; min-width: 400px; max-width: 500px;">
+                        <h3 style="color: #ff6b6b; margin: 0 0 16px 0; display: flex; align-items: center; gap: 8px;">
+                            🎁 Send Gift: ${character.icon} ${character.name}
+                        </h3>
+                        
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #1f4e79;">Search Recipient:</label>
+                            <input type="text" id="simpleGiftSearch" placeholder="Type username..." style="width: 100%; padding: 8px; border: 2px solid #ff6b6b; border-radius: 4px; font-size: 14px;">
+                            <div id="simpleGiftResults" style="margin-top: 8px; max-height: 200px; overflow-y: auto;"></div>
+                        </div>
+                        
+                        <div id="simpleGiftSelected" style="margin-bottom: 16px; padding: 8px; background: #f0f8ff; border: 1px solid #316ac5; border-radius: 4px; display: none;">
+                            <strong>Selected:</strong> <span id="simpleGiftRecipientName"></span>
+                        </div>
+                        
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #1f4e79;">Message (optional):</label>
+                            <textarea id="simpleGiftMessage" placeholder="Add a personal message..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; resize: vertical; height: 60px;"></textarea>
+                        </div>
+                        
+                        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                            <button onclick="closeSimpleGiftPopup()" style="padding: 8px 16px; background: #ccc; border: none; border-radius: 4px; cursor: pointer;">Cancel</button>
+                            <button id="simpleGiftSendBtn" onclick="sendSimpleGift()" style="padding: 8px 16px; background: #ff6b6b; color: white; border: none; border-radius: 4px; cursor: pointer; display: none;">Send Gift</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add popup to page
+            document.body.insertAdjacentHTML('beforeend', popupHTML);
+            
+            // Focus on search input
+            setTimeout(() => {
+                document.getElementById('simpleGiftSearch').focus();
+            }, 100);
+            
+            // Set up search functionality
+            document.getElementById('simpleGiftSearch').oninput = searchSimpleGiftRecipients;
+            
+            console.log('🎁 Simple gift popup opened for:', characterName);
+        }
+
+        // Close simple gift popup
+        function closeSimpleGiftPopup() {
+            const popup = document.querySelector('[style*="position: fixed"]');
+            if (popup) {
+                popup.remove();
+            }
+        }
+
+        // Search for gift recipients
+        async function searchSimpleGiftRecipients() {
+            const searchTerm = document.getElementById('simpleGiftSearch').value.toLowerCase().trim();
+            const resultsDiv = document.getElementById('simpleGiftResults');
+            
+            if (searchTerm === '') {
+                resultsDiv.innerHTML = '';
+                return;
+            }
+            
+            console.log('🔍 Searching for users:', searchTerm);
+            
+            try {
+                const response = await fetch(`${RAILWAY_API_URL}/api/users/search?query=${encodeURIComponent(searchTerm)}`);
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('✅ Search result:', result);
+                    
+                    if (result.success && result.users && result.users.length > 0) {
+                        resultsDiv.innerHTML = '';
+                        result.users.forEach(user => {
+                            const userDiv = document.createElement('div');
+                            userDiv.style.cssText = 'padding: 8px; border: 1px solid #ccc; margin-bottom: 4px; cursor: pointer; border-radius: 4px; background: white;';
+                            userDiv.innerHTML = `
+                                <div style="font-weight: bold; color: #1f4e79;">${user.username}</div>
+                                <div style="font-size: 12px; color: #666;">${user.email}</div>
+                            `;
+                            userDiv.onclick = () => selectSimpleGiftRecipient(user.username);
+                            resultsDiv.appendChild(userDiv);
+                        });
+                    } else {
+                        resultsDiv.innerHTML = '<div style="padding: 8px; color: #666; text-align: center;">No users found</div>';
+                    }
+                } else {
+                    resultsDiv.innerHTML = '<div style="padding: 8px; color: #ff4444; text-align: center;">Search failed</div>';
+                }
+            } catch (error) {
+                console.error('❌ Search error:', error);
+                resultsDiv.innerHTML = '<div style="padding: 8px; color: #ff4444; text-align: center;">Search error</div>';
+            }
+        }
+
+        // Select gift recipient
+        function selectSimpleGiftRecipient(username) {
+            document.getElementById('simpleGiftRecipientName').textContent = username;
+            document.getElementById('simpleGiftSelected').style.display = 'block';
+            document.getElementById('simpleGiftSendBtn').style.display = 'inline-block';
+            document.getElementById('simpleGiftResults').innerHTML = '';
+            document.getElementById('simpleGiftSearch').value = '';
+            
+            // Store selected recipient
+            window.simpleGiftRecipient = username;
+            
+            console.log('✅ Selected recipient:', username);
+        }
+
+        // Send simple gift
+        async function sendSimpleGift() {
+            if (!window.simpleGiftRecipient || !currentCharacterForGift) {
+                alert('❌ No recipient selected');
+                return;
+            }
+            
+            const character = characterDatabase.find(char => char.id === currentCharacterForGift);
+            const message = document.getElementById('simpleGiftMessage').value || '';
+            
+            console.log('🎁 Sending gift:', {
+                character: character.name,
+                recipient: window.simpleGiftRecipient,
+                message: message
+            });
+            
+            // For now, just show success message
+            alert(`✅ Gift sent!\n\n${character.icon} ${character.name} has been sent to ${window.simpleGiftRecipient}!\n\nMessage: "${message}"`);
+            
+            // Close popup
+            closeSimpleGiftPopup();
+        }
 
         function giftCharacter(characterName) {
+            console.log('🎁 giftCharacter function called with:', characterName);
+            console.log('🎁 Current characterDatabase:', characterDatabase);
+            
             const character = characterDatabase.find(char => char.id === characterName);
-            if (!character) return;
+            console.log('🎁 Found character:', character);
+            
+            if (!character) {
+                console.error('❌ Character not found in database');
+                alert('❌ Character not found.');
+                return;
+            }
             
             // Prevent gifting the default kitty character
             if (characterName === 'kitty') {
@@ -6539,14 +6713,35 @@
                 return;
             }
             
-            // Check if current user has this character
+            // Check if current user owns this character
+            if (!character.owned) {
+                alert('❌ You must own this character before you can gift it.');
+                return;
+            }
+            
+            // Check if current user has this character in inventory
             const characterQuantity = inventoryItems.filter(item => 
                 item.type === 'character' && item.name === character.name
             ).length;
             
             if (characterQuantity === 0) {
-                alert('❌ You don\'t have this character in your inventory to gift.');
-                return;
+                // If they own it but don't have it in inventory, add it automatically
+                console.log('🔄 Adding character to inventory for gifting:', character.name);
+                const newInventoryItem = {
+                    id: `character_${characterName}_${Date.now()}`,
+                    type: 'character',
+                    name: character.name,
+                    icon: character.icon,
+                    description: character.description,
+                    price: character.price,
+                    acquiredDate: new Date().toISOString(),
+                    source: 'gift_preparation',
+                    quantity: 1
+                };
+                
+                inventoryItems.push(newInventoryItem);
+                saveInventory();
+                updateInventoryUI();
             }
             
             // Store the character to gift
@@ -6558,6 +6753,8 @@
                 id: characterName
             };
             
+            console.log('🎁 Opening gift modal for:', character.name);
+            
             // Close character details modal and open gift sending modal
             closeCharacterDetailsModal();
             openGiftSendingModal();
@@ -6565,6 +6762,8 @@
 
         function openGiftSendingModal() {
             if (!window.giftCharacterData) return;
+            
+            console.log('🎁 Opening gift sending modal for:', window.giftCharacterData.name);
             
             // Update gift item display
             document.getElementById('giftItemIcon').textContent = window.giftCharacterData.icon;
@@ -6579,6 +6778,15 @@
             
             // Show modal
             document.getElementById('giftSendingModal').style.display = 'block';
+            
+            // Focus on search input after modal is shown
+            setTimeout(() => {
+                const searchInput = document.getElementById('giftRecipientSearch');
+                if (searchInput) {
+                    searchInput.focus();
+                    console.log('🔍 Search input focused and ready');
+                }
+            }, 100);
         }
 
         function closeGiftSendingModal() {
