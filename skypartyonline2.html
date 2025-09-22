@@ -6744,8 +6744,22 @@
             const finalRecipient = window.simpleGiftRecipient || recipientName;
             console.log('🎁 Final recipient:', finalRecipient);
             
+            // Check if we have a valid recipient
+            if (!finalRecipient || finalRecipient === 'undefined') {
+                console.error('❌ No valid recipient selected');
+                showGiftAlert('❌ Error: No recipient selected! Please select a user first.', 'error');
+                return;
+            }
+            
             const character = characterDatabase.find(char => char.id === currentCharacterForGift);
             const message = document.getElementById('simpleGiftMessage').value || '';
+            
+            // Check if character exists
+            if (!character) {
+                console.error('❌ Character not found for gifting:', currentCharacterForGift);
+                showGiftAlert('❌ Error: Character not found for gifting!', 'error');
+                return;
+            }
             
             console.log('🎁 Sending gift:', {
                 character: character.name,
