@@ -3871,15 +3871,64 @@
         }
 
         // Character search functionality
-        const characterDatabase = [
-            { id: 'fox', name: 'Fox', icon: '🦊', price: 600, owned: false, selected: false, description: 'A clever and agile fox character. Great for strategy games!' },
-            { id: 'wolf', name: 'Wolf', icon: '🐺', price: 800, owned: false, selected: false, description: 'A strong and loyal wolf character. Perfect for team games!' },
-            { id: 'bear', name: 'Bear', icon: '🐻', price: 1000, owned: false, selected: false, description: 'A powerful and protective bear character. Great for defense!' },
-            { id: 'rabbit', name: 'Rabbit', icon: '🐰', price: 400, owned: false, selected: false, description: 'A quick and energetic rabbit character. Fast and nimble!' },
-            { id: 'owl', name: 'Owl', icon: '🦉', price: 1200, owned: false, selected: false, description: 'A wise and mysterious owl character. Perfect for puzzle games!' },
-            { id: 'dragon', name: 'Dragon', icon: '🐉', price: 2000, owned: false, selected: false, description: 'A legendary dragon character. The ultimate choice!' },
-            { id: 'unicorn', name: 'Unicorn', icon: '🦄', price: 1500, owned: false, selected: false, description: 'A magical unicorn character. Brings luck and magic!' }
+        let characterDatabase = [
+            { id: 'kitty', name: 'Kitty', icon: '🐱', price: 0, owned: false, selected: false, description: 'A cute and friendly kitty character. Perfect for beginners!' },
+            { id: 'dragon', name: 'Dragon', icon: '🐉', price: 500, owned: false, selected: false, description: 'A powerful dragon with mystical abilities.' },
+            { id: 'robot', name: 'Robot', icon: '🤖', price: 300, owned: false, selected: false, description: 'An advanced AI robot companion.' },
+            { id: 'ninja', name: 'Ninja', icon: '🥷', price: 400, owned: false, selected: false, description: 'A stealthy ninja warrior.' },
+            { id: 'wizard', name: 'Wizard', icon: '🧙', price: 600, owned: false, selected: false, description: 'A wise wizard with magical powers.' },
+            { id: 'pirate', name: 'Pirate', icon: '🏴‍☠️', price: 350, owned: false, selected: false, description: 'A swashbuckling pirate adventurer.' },
+            { id: 'bear', name: 'Bear', icon: '🐻', price: 250, owned: false, selected: false, description: 'A strong and cuddly bear companion.' },
+            { id: 'unicorn', name: 'Unicorn', icon: '🦄', price: 800, owned: false, selected: false, description: 'A magical unicorn with healing powers.' },
+            { id: 'rabbit', name: 'Rabbit', icon: '🐰', price: 200, owned: false, selected: false, description: 'A quick and agile rabbit friend.' },
+            { id: 'fox', name: 'Fox', icon: '🦊', price: 300, owned: false, selected: false, description: 'A clever and cunning fox.' },
+            { id: 'owl', name: 'Owl', icon: '🦉', price: 400, owned: false, selected: false, description: 'A wise owl with night vision.' },
+            { id: 'wolf', name: 'Wolf', icon: '🐺', price: 450, owned: false, selected: false, description: 'A loyal wolf pack leader.' }
         ];
+
+        // Load characters from Railway database
+        async function loadCharactersFromDatabase() {
+            try {
+                console.log('🔄 Loading characters from Railway database...');
+                
+                const response = await fetch(`${RAILWAY_API_URL}/api/characters`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('✅ Characters loaded from Railway:', result);
+                    
+                    if (result.success && result.characters) {
+                        // Update characterDatabase with data from Railway
+                        characterDatabase = result.characters.map(char => ({
+                            id: char.id,
+                            name: char.name,
+                            icon: char.icon,
+                            price: char.price,
+                            owned: false, // Will be updated by updateCharacterDatabase()
+                            selected: false,
+                            description: char.description
+                        }));
+                        
+                        console.log('✅ Character database updated from Railway:', characterDatabase);
+                        
+                        // Update owned status
+                        updateCharacterDatabase();
+                        
+                        // Refresh character display
+                        populateAllCharacters();
+                    }
+                } else {
+                    console.error('❌ Failed to load characters from Railway');
+                }
+            } catch (error) {
+                console.error('❌ Error loading characters from Railway:', error);
+            }
+        }
 
         function searchCharacters() {
             const searchTerm = document.getElementById('characterSearch').value.toLowerCase().trim();
@@ -4348,6 +4397,8 @@
                     console.log('✅ Railway API connected successfully!');
                     // Test Railway users database
                     testRailwayUsers();
+                    // Load characters from Railway database
+                    loadCharactersFromDatabase();
                 } else {
                     console.log('⚠️ Railway API not available, using local storage fallback');
                 }
@@ -6337,8 +6388,13 @@
                     body: JSON.stringify(giftData)
                 });
                 
+                console.log('📤 Send response status:', sendResponse.status);
+                console.log('📤 Send response ok:', sendResponse.ok);
+                
                 if (!sendResponse.ok) {
-                    throw new Error('Failed to send gift to database');
+                    const errorText = await sendResponse.text();
+                    console.error('❌ Gift send error response:', errorText);
+                    throw new Error(`Failed to send gift to database: ${sendResponse.status} - ${errorText}`);
                 }
                 
                 const sendResult = await sendResponse.json();
