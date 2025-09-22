@@ -6680,6 +6680,26 @@
             
             if (characterIndex !== -1) {
                 console.log('Removing character:', inventoryItems[characterIndex]);
+                
+                // Check if this is the currently equipped character
+                const characterId = window.giftCharacterData.name.toLowerCase().replace(/\s+/g, '');
+                const isCurrentlyEquipped = currentCharacter === characterId;
+                
+                if (isCurrentlyEquipped) {
+                    console.log('⚠️ Sending currently equipped character, switching to kitty');
+                    currentCharacter = 'kitty';
+                    updateAvatar();
+                    
+                    // Update owned characters list
+                    if (ownedCharacters.includes(characterId)) {
+                        ownedCharacters = ownedCharacters.filter(char => char !== characterId);
+                        updateCharacterDatabase();
+                    }
+                    
+                    // Save character data changes
+                    await saveCharacterData();
+                }
+                
                 inventoryItems.splice(characterIndex, 1);
                 saveInventory();
                 
@@ -6691,6 +6711,7 @@
             } else {
                 console.log('Character not found in inventory!');
                 alert('❌ Error: Character not found in inventory. Please try again.');
+                return; // Exit early if character not found
             }
             
             // Send gift to recipient
