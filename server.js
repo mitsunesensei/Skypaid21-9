@@ -1041,8 +1041,8 @@ app.put('/api/user/:userId/data', async (req, res) => {
             // Skip currentCharacter as it's handled separately
             if (dataType === 'currentCharacter') continue;
             
-            // Convert arrays/objects to JSON strings for storage
-            const valueToStore = typeof dataValue === 'object' ? JSON.stringify(dataValue) : dataValue;
+            // Convert arrays/objects to proper JSON for JSONB storage
+            const valueToStore = typeof dataValue === 'object' ? dataValue : dataValue;
             
             await client.query(
                 `INSERT INTO user_data (user_id, data_type, data_value, updated_at) 
@@ -1127,7 +1127,8 @@ async function createTables() {
                 data_type VARCHAR(50) NOT NULL,
                 data_value JSONB,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, data_type)
             )
         `);
         
@@ -1395,6 +1396,7 @@ app.get('/api/user/:userId/gifts', async (req, res) => {
                 g.created_at,
                 g.claimed_at,
                 u.username as sender_username,
+                r.username as recipient_username,
                 JSON_BUILD_OBJECT(
                     'name', g.item_name,
                     'icon', g.item_icon,
@@ -1403,6 +1405,7 @@ app.get('/api/user/:userId/gifts', async (req, res) => {
                 ) as item_data
             FROM gifts g
             JOIN users u ON g.sender_id = u.id
+            JOIN users r ON g.recipient_id = r.id
             WHERE g.recipient_id = $1 AND g.status = 'pending'
             ORDER BY g.created_at DESC
         `, [userId]);

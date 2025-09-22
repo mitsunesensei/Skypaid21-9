@@ -3230,7 +3230,7 @@
         }
         
         // Update UI for Railway login (copies Firebase auth state listener logic)
-        function updateUIForLoggedInUser(username) {
+        async function updateUIForLoggedInUser(username) {
             console.log('Updating UI for logged in user:', username);
             
             // Update user info box (avatar and status)
@@ -3281,21 +3281,26 @@
             // Show logout button
             document.getElementById('logoutBtn').style.display = 'block';
             
+            // Load user data from Railway database
+            setTimeout(async () => {
+                await loadUserDataFromRailway();
+            }, 100);
+            
             // Update character card statuses for the logged-in user
             setTimeout(() => {
                 updateCharacterCardStatuses();
-            }, 100);
+            }, 200);
             
             // Update DM notification dot for the logged-in user
             setTimeout(() => {
                 loadDMMessages().catch(console.error);
                 updateDMNotificationDot();
-            }, 200);
+            }, 300);
             
             // Initialize mailbox for the logged-in user
             setTimeout(() => {
                 initializeMailbox();
-            }, 300);
+            }, 400);
             
             // Initialize inventory for the logged-in user
             setTimeout(() => {
@@ -3625,7 +3630,72 @@
         currentCharacter = 'kitty'; // Default character for everyone
         ownedCharacters = ['kitty']; // Characters the user owns
 
-        // Character and credits persistence functions
+        // Load user data from Railway database
+        async function loadUserDataFromRailway() {
+            if (!currentUserId) return;
+            
+            try {
+                console.log('🔄 Loading user data from Railway for user ID:', currentUserId);
+                
+                // Load user data
+                const userDataResponse = await fetch(`${RAILWAY_API_URL}/api/user/${currentUserId}/data`);
+                if (userDataResponse.ok) {
+                    const userDataResult = await userDataResponse.json();
+                    console.log('📊 User data from Railway:', userDataResult);
+                    
+                    if (userDataResult.success && userDataResult.data) {
+                        // Update global variables with Railway data
+                        if (userDataResult.data.currentCharacter) {
+                            currentCharacter = userDataResult.data.currentCharacter;
+                        }
+                        if (userDataResult.data.ownedCharacters) {
+                            ownedCharacters = userDataResult.data.ownedCharacters;
+                        }
+                        if (userDataResult.data.gameCredits !== undefined) {
+                            gameCredits = userDataResult.data.gameCredits;
+                        }
+                        
+                        console.log('✅ User data loaded from Railway:', {
+                            currentCharacter,
+                            ownedCharacters,
+                            gameCredits
+                        });
+                        
+                        // Update UI
+                        updateCharacterDatabase();
+                        updateAvatar();
+                        updateCharacterCardStatuses();
+                        
+                        // Update credit displays
+                        document.getElementById('creditsAmount').textContent = gameCredits;
+                        document.getElementById('gcBalance').textContent = gameCredits + ' GC';
+                        document.getElementById('creditsAmountSidebar').textContent = gameCredits + ' GC';
+                    }
+                }
+                
+                // Load owned characters from Railway
+                const charactersResponse = await fetch(`${RAILWAY_API_URL}/api/user/${currentUserId}/characters`);
+                if (charactersResponse.ok) {
+                    const charactersResult = await charactersResponse.json();
+                    console.log('👥 Owned characters from Railway:', charactersResult);
+                    
+                    if (charactersResult.success && charactersResult.characters) {
+                        // Update ownedCharacters with Railway data
+                        const railwayOwnedCharacters = charactersResult.characters.map(char => char.character_id);
+                        ownedCharacters = [...new Set([...ownedCharacters, ...railwayOwnedCharacters])];
+                        
+                        console.log('✅ Owned characters updated from Railway:', ownedCharacters);
+                        
+                        // Update character database
+                        updateCharacterDatabase();
+                        updateCharacterCardStatuses();
+                    }
+                }
+                
+            } catch (error) {
+                console.error('❌ Error loading user data from Railway:', error);
+            }
+        }
         async function saveCharacterData() {
             if (!currentUser) {
                 console.log('No current user to save character data for');
@@ -4574,6 +4644,28 @@
                         giftBtn.textContent = 'Gift';
                         giftBtn.onclick = () => giftCharacter(characterName);
                         modalButtons.appendChild(giftBtn);
+                    }
+                    
+                    // Save character data to Railway
+                    try {
+                        // Add character to user's characters via Railway API
+                        const addCharacterResponse = await fetch(`${RAILWAY_API_URL}/api/user/${currentUserId}/characters/${characterName}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                acquired_via: 'purchase'
+                            })
+                        });
+                        
+                        if (addCharacterResponse.ok) {
+                            console.log('✅ Character added to Railway database');
+                        } else {
+                            console.error('❌ Failed to add character to Railway database');
+                        }
+                    } catch (error) {
+                        console.error('❌ Error adding character to Railway:', error);
                     }
                     
                     // Save character data
