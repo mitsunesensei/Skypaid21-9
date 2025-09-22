@@ -6570,7 +6570,7 @@
             recipientResults.style.display = 'block';
         }
 
-        function createGiftRecipientCard(username) {
+        async function createGiftRecipientCard(username) {
             const card = document.createElement('div');
             card.className = 'user-card';
             card.style.cssText = `
@@ -6588,7 +6588,7 @@
                 justify-content: center;
             `;
 
-            const userAvatar = getUserAvatar(username);
+            const userAvatar = await getUserAvatar(username);
 
             card.innerHTML = `
                 <div style="font-size: 24px; margin-bottom: 4px;">${userAvatar}</div>
@@ -6599,11 +6599,12 @@
             return card;
         }
 
-        function selectGiftRecipient(username) {
+        async function selectGiftRecipient(username) {
             selectedGiftRecipient = username;
             
             // Update selected recipient display
-            document.getElementById('giftSelectedRecipientAvatar').textContent = getUserAvatar(username);
+            const userAvatar = await getUserAvatar(username);
+            document.getElementById('giftSelectedRecipientAvatar').textContent = userAvatar;
             document.getElementById('giftSelectedRecipientName').textContent = username;
             document.getElementById('giftSelectedRecipient').style.display = 'block';
             
@@ -6620,13 +6621,31 @@
             document.getElementById('giftRecipientResults').style.display = 'none';
         }
 
-        function sendGiftToRecipient() {
+        async function sendGiftToRecipient() {
             if (!selectedGiftRecipient || !window.giftCharacterData) return;
             
-            // Check if recipient exists
-            const mappings = getUsernameMappings();
-            if (!mappings[selectedGiftRecipient]) {
-                alert('❌ User not found. Please check the username and try again.');
+            // Check if recipient exists in Railway database
+            try {
+                const response = await fetch(`${RAILWAY_API_URL}/api/users/search?query=${encodeURIComponent(selectedGiftRecipient)}`);
+                if (response.ok) {
+                    const result = await response.json();
+                    if (!result.success || !result.users || result.users.length === 0) {
+                        alert('❌ User not found. Please check the username and try again.');
+                        return;
+                    }
+                    
+                    const recipientExists = result.users.some(user => user.username === selectedGiftRecipient);
+                    if (!recipientExists) {
+                        alert('❌ User not found. Please check the username and try again.');
+                        return;
+                    }
+                } else {
+                    alert('❌ Error checking user. Please try again.');
+                    return;
+                }
+            } catch (error) {
+                console.error('Error checking recipient:', error);
+                alert('❌ Error checking user. Please try again.');
                 return;
             }
             
@@ -6656,44 +6675,67 @@
             }
             
             // Send gift to recipient
-            const recipientEmail = mappings[selectedGiftRecipient];
             const giftMessage = document.getElementById('giftMessage').value || '';
             
-            // Add gift to recipient's mailbox
-            const recipientMailboxData = localStorage.getItem(`mailbox_${recipientEmail}`);
-            let recipientMailbox = [];
-            if (recipientMailboxData) {
-                try {
-                    recipientMailbox = JSON.parse(recipientMailboxData);
-                } catch (error) {
-                    recipientMailbox = [];
+            try {
+                // Get recipient's user data from Railway to get their email
+                const recipientResponse = await fetch(`${RAILWAY_API_URL}/api/users/search?query=${encodeURIComponent(selectedGiftRecipient)}`);
+                if (recipientResponse.ok) {
+                    const recipientResult = await recipientResponse.json();
+                    if (recipientResult.success && recipientResult.users && recipientResult.users.length > 0) {
+                        const recipientUser = recipientResult.users.find(user => user.username === selectedGiftRecipient);
+                        if (recipientUser) {
+                            // Use the recipient's email for local storage (fallback system)
+                            const recipientEmail = recipientUser.email;
+                            
+                            // Add gift to recipient's mailbox (local storage fallback)
+                            const recipientMailboxData = localStorage.getItem(`mailbox_${recipientEmail}`);
+                            let recipientMailbox = [];
+                            if (recipientMailboxData) {
+                                try {
+                                    recipientMailbox = JSON.parse(recipientMailboxData);
+                                } catch (error) {
+                                    recipientMailbox = [];
+                                }
+                            }
+                            
+                            const giftItem = {
+                                id: `character_gift_${Date.now()}`,
+                                sender: await getCurrentUsername(),
+                                recipient: selectedGiftRecipient,
+                                itemType: 'character',
+                                itemData: {
+                                    name: window.giftCharacterData.name,
+                                    icon: window.giftCharacterData.icon,
+                                    description: window.giftCharacterData.description,
+                                    price: window.giftCharacterData.price
+                                },
+                                message: giftMessage,
+                                timestamp: new Date().toISOString(),
+                                read: false,
+                                claimed: false
+                            };
+                            
+                            recipientMailbox.unshift(giftItem);
+                            localStorage.setItem(`mailbox_${recipientEmail}`, JSON.stringify(recipientMailbox));
+                            
+                            alert(`✅ Gift Sent!\n\n${window.giftCharacterData.name} has been sent to ${selectedGiftRecipient}!\n\nThey will receive it in their mailbox.`);
+                            
+                            // Close modal
+                            closeGiftSendingModal();
+                        } else {
+                            alert('❌ User not found. Please check the username and try again.');
+                        }
+                    } else {
+                        alert('❌ User not found. Please check the username and try again.');
+                    }
+                } else {
+                    alert('❌ Error sending gift. Please try again.');
                 }
+            } catch (error) {
+                console.error('Error sending gift:', error);
+                alert('❌ Error sending gift. Please try again.');
             }
-            
-            const giftItem = {
-                id: `character_gift_${Date.now()}`,
-                sender: getCurrentUsername(),
-                recipient: selectedGiftRecipient,
-                itemType: 'character',
-                itemData: {
-                    name: window.giftCharacterData.name,
-                    icon: window.giftCharacterData.icon,
-                    description: window.giftCharacterData.description,
-                    price: window.giftCharacterData.price
-                },
-                message: giftMessage,
-                timestamp: new Date().toISOString(),
-                read: false,
-                claimed: false
-            };
-            
-            recipientMailbox.unshift(giftItem);
-            localStorage.setItem(`mailbox_${recipientEmail}`, JSON.stringify(recipientMailbox));
-            
-            alert(`✅ Gift Sent!\n\n${window.giftCharacterData.name} has been sent to ${selectedGiftRecipient}!\n\nThey will receive it in their mailbox.`);
-            
-            // Close modal
-            closeGiftSendingModal();
         }
 
         // Gift Acceptance Modal Functions
