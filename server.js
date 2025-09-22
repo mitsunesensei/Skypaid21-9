@@ -1038,12 +1038,18 @@ app.put('/api/user/:userId/data', async (req, res) => {
         
         // Update or insert each data type in user_data table
         for (const [dataType, dataValue] of Object.entries(data)) {
+            // Skip currentCharacter as it's handled separately
+            if (dataType === 'currentCharacter') continue;
+            
+            // Convert arrays/objects to JSON strings for storage
+            const valueToStore = typeof dataValue === 'object' ? JSON.stringify(dataValue) : dataValue;
+            
             await client.query(
                 `INSERT INTO user_data (user_id, data_type, data_value, updated_at) 
                  VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
                  ON CONFLICT (user_id, data_type) 
                  DO UPDATE SET data_value = $3, updated_at = CURRENT_TIMESTAMP`,
-                [userId, dataType, dataValue]
+                [userId, dataType, valueToStore]
             );
         }
         
@@ -1056,7 +1062,17 @@ app.put('/api/user/:userId/data', async (req, res) => {
         
     } catch (error) {
         console.error('Update user data error:', error);
-        res.status(500).json({ success: false, message: 'Failed to update user data' });
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            userId: req.params.userId,
+            data: req.body
+        });
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to update user data',
+            error: error.message 
+        });
     }
 });
 
@@ -1369,7 +1385,22 @@ app.get('/api/user/:userId/gifts', async (req, res) => {
         const client = await pool.connect();
         
         const result = await client.query(`
-            SELECT g.*, u.username as sender_username
+            SELECT 
+                g.id,
+                g.sender_id,
+                g.recipient_id,
+                g.item_type,
+                g.message,
+                g.status,
+                g.created_at,
+                g.claimed_at,
+                u.username as sender_username,
+                JSON_BUILD_OBJECT(
+                    'name', g.item_name,
+                    'icon', g.item_icon,
+                    'description', g.item_description,
+                    'price', g.item_price
+                ) as item_data
             FROM gifts g
             JOIN users u ON g.sender_id = u.id
             WHERE g.recipient_id = $1 AND g.status = 'pending'
