@@ -1,56 +1,23 @@
 {
-  "name": "skyparty-desktop",
+  "name": "skyparty-backend",
   "version": "1.0.0",
-  "description": "SkyParty Desktop Game Launcher - Windows XP Style",
-  "main": "main.js",
+  "description": "SkyParty Backend API Server",
+  "main": "server.js",
   "scripts": {
-    "start": "electron .",
-    "dev": "electron . --dev",
-    "server": "node server.js",
-    "build": "electron-builder",
-    "dist": "electron-builder --publish=never"
+    "start": "node server.js",
+    "server": "node server.js"
   },
   "keywords": [
-    "electron",
-    "game-launcher",
-    "desktop-app",
-    "windows-xp-style",
+    "backend",
+    "api",
+    "game-server",
     "skyparty"
   ],
   "author": "SkyParty Team",
   "license": "MIT",
-  "devDependencies": {
-    "electron": "^28.0.0",
-    "electron-builder": "^24.6.4"
-  },
   "dependencies": {
     "express": "4.18.2",
     "cors": "2.8.5",
     "pg": "8.16.3"
-  },
-  "build": {
-    "appId": "com.skyparty.desktop",
-    "productName": "SkyParty Desktop",
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "main.js",
-      "skypartyonline2.html",
-      "server.js",
-      "package.json",
-      "node_modules/**/*"
-    ],
-    "win": {
-      "target": "nsis",
-      "icon": "icon.ico",
-      "sign": false
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
-    }
   }
 }
