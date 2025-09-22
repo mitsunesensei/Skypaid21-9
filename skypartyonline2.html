@@ -3865,56 +3865,16 @@
         }
 
         // Character search functionality
-        let characterDatabase = [
-            { id: 'kitty', name: 'Kitty', icon: '🐱', price: 0, owned: true, selected: true, description: 'A cute and friendly kitty character. Perfect for beginners!' },
-            { id: 'dragon', name: 'Dragon', icon: '🐉', price: 500, owned: false, selected: false, description: 'A powerful dragon with mystical abilities.' },
-            { id: 'robot', name: 'Robot', icon: '🤖', price: 300, owned: false, selected: false, description: 'An advanced AI robot companion.' },
-            { id: 'ninja', name: 'Ninja', icon: '🥷', price: 400, owned: false, selected: false, description: 'A stealthy ninja warrior.' },
-            { id: 'wizard', name: 'Wizard', icon: '🧙', price: 600, owned: false, selected: false, description: 'A wise wizard with magical powers.' },
-            { id: 'pirate', name: 'Pirate', icon: '🏴‍☠️', price: 450, owned: false, selected: false, description: 'A swashbuckling pirate adventurer.' },
-            { id: 'bear', name: 'Bear', icon: '🐻', price: 350, owned: false, selected: false, description: 'A strong and protective bear character.' },
-            { id: 'unicorn', name: 'Unicorn', icon: '🦄', price: 700, owned: false, selected: false, description: 'A magical unicorn with healing powers.' },
-            { id: 'rabbit', name: 'Rabbit', icon: '🐰', price: 200, owned: false, selected: false, description: 'A quick and energetic rabbit character.' },
-            { id: 'fox', name: 'Fox', icon: '🦊', price: 300, owned: false, selected: false, description: 'A clever and agile fox character.' },
-            { id: 'owl', name: 'Owl', icon: '🦉', price: 400, owned: false, selected: false, description: 'A wise and mysterious owl character.' },
-            { id: 'wolf', name: 'Wolf', icon: '🐺', price: 450, owned: false, selected: false, description: 'A loyal wolf pack leader.' }
+        const characterDatabase = [
+            { id: 'fox', name: 'Fox', icon: '🦊', price: 600, owned: false, selected: false, description: 'A clever and agile fox character. Great for strategy games!' },
+            { id: 'wolf', name: 'Wolf', icon: '🐺', price: 800, owned: false, selected: false, description: 'A strong and loyal wolf character. Perfect for team games!' },
+            { id: 'bear', name: 'Bear', icon: '🐻', price: 1000, owned: false, selected: false, description: 'A powerful and protective bear character. Great for defense!' },
+            { id: 'rabbit', name: 'Rabbit', icon: '🐰', price: 400, owned: false, selected: false, description: 'A quick and energetic rabbit character. Fast and nimble!' },
+            { id: 'owl', name: 'Owl', icon: '🦉', price: 1200, owned: false, selected: false, description: 'A wise and mysterious owl character. Perfect for puzzle games!' },
+            { id: 'dragon', name: 'Dragon', icon: '🐉', price: 2000, owned: false, selected: false, description: 'A legendary dragon character. The ultimate choice!' },
+            { id: 'unicorn', name: 'Unicorn', icon: '🦄', price: 1500, owned: false, selected: false, description: 'A magical unicorn character. Brings luck and magic!' }
         ];
 
-        // Load characters from Railway database
-        async function loadCharactersFromDatabase() {
-            try {
-                console.log('🔄 Loading characters from Railway database...');
-                
-                const response = await fetch(`${RAILWAY_API_URL}/api/characters`);
-                if (response.ok) {
-                    const result = await response.json();
-                    console.log('✅ Characters loaded from Railway:', result);
-                    
-                    if (result.success && result.characters) {
-                        // Update characterDatabase with Railway data
-                        characterDatabase = result.characters.map(char => ({
-                            id: char.id,
-                            name: char.name,
-                            icon: char.icon,
-                            price: char.price,
-                            owned: false, // Will be updated based on user's owned characters
-                            selected: false, // Will be updated based on user's current character
-                            description: char.description
-                        }));
-                        
-                        console.log('✅ Character database updated:', characterDatabase);
-                        
-                        // Update UI
-                        populateAllCharacters();
-                        updateCharacterCardStatuses();
-                    }
-                } else {
-                    console.error('❌ Failed to load characters from Railway');
-                }
-            } catch (error) {
-                console.error('❌ Error loading characters from database:', error);
-            }
-        }
         function searchCharacters() {
             const searchTerm = document.getElementById('characterSearch').value.toLowerCase().trim();
             const searchResultsPanel = document.getElementById('searchResultsPanel');
@@ -4370,9 +4330,6 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Load characters from Railway database
-            loadCharactersFromDatabase();
-            
             // Initialize UI to logged-out state first
             initializeUI();
             
@@ -4551,12 +4508,14 @@
                         selectBtn.id = 'characterSelectBtn';
                         selectBtn.textContent = 'Select';
                         selectBtn.onclick = () => selectCharacter(characterName).catch(console.error);
-                        // Add Gift button
+                        modalButtons.appendChild(selectBtn);
+                        
+                        // Add Gift button with proper ID
                         const giftBtn = document.createElement('button');
                         giftBtn.className = 'xp-button primary';
-                        giftBtn.textContent = '🎁 Gift';
+                        giftBtn.id = 'characterGiftBtn';
+                        giftBtn.textContent = 'Gift';
                         giftBtn.onclick = () => giftCharacter(characterName);
-                        modalButtons.appendChild(selectBtn);
                         modalButtons.appendChild(giftBtn);
                     }
                     
@@ -4658,40 +4617,6 @@
             openGiftSendingModal();
         }
 
-        // Gift system functions
-        function giftCharacter(characterName) {
-            const character = characterDatabase.find(char => char.id === characterName);
-            if (!character) return;
-            
-            // Prevent gifting the default kitty character
-            if (characterName === 'kitty') {
-                alert('❌ You cannot gift the default Kitty character.');
-                return;
-            }
-            
-            // Check if current user has this character
-            const characterQuantity = inventoryItems.filter(item => 
-                item.type === 'character' && item.name === character.name
-            ).length;
-            
-            if (characterQuantity === 0) {
-                alert('❌ You don\'t have this character in your inventory to gift.');
-                return;
-            }
-            
-            // Store the character to gift
-            window.giftCharacterData = {
-                name: character.name,
-                icon: character.icon,
-                description: character.description,
-                price: character.price,
-                id: characterName
-            };
-            
-            // Close character details modal and open gift sending modal
-            closeCharacterDetailsModal();
-            openGiftSendingModal();
-        }
         function selectCharacterFromInventory() {
             // This will be called when clicking Select from inventory
             const characterName = window.currentInventoryCharacter;
@@ -6217,27 +6142,6 @@
             document.getElementById('giftSendingModal').style.display = 'block';
         }
 
-        // Gift Sending Modal Functions
-        function openGiftSendingModal() {
-            if (!window.giftCharacterData) {
-                alert('❌ No character selected for gifting.');
-                return;
-            }
-            
-            // Reset the modal
-            document.getElementById('giftRecipientSearch').value = '';
-            document.getElementById('giftRecipientResults').style.display = 'none';
-            document.getElementById('giftSelectedRecipient').style.display = 'none';
-            document.getElementById('sendGiftBtn').style.display = 'none';
-            document.getElementById('giftMessage').value = '';
-            
-            // Show the character being gifted
-            document.getElementById('giftCharacterIcon').textContent = window.giftCharacterData.icon;
-            document.getElementById('giftCharacterName').textContent = window.giftCharacterData.name;
-            document.getElementById('giftCharacterDescription').textContent = window.giftCharacterData.description;
-            
-            document.getElementById('giftSendingModal').style.display = 'block';
-        }
         function closeGiftSendingModal() {
             document.getElementById('giftSendingModal').style.display = 'none';
             clearGiftRecipientSearch();
@@ -6249,63 +6153,6 @@
             const searchTerm = document.getElementById('giftRecipientSearch').value.toLowerCase().trim();
             const recipientResults = document.getElementById('giftRecipientResults');
             const recipientList = document.getElementById('giftRecipientList');
-            
-            if (searchTerm === '') {
-                recipientResults.style.display = 'none';
-                return;
-            }
-            
-            console.log('🎁 Gift Search: Searching for users:', searchTerm);
-            
-            // Try Railway API first
-            try {
-                const response = await fetch(`${RAILWAY_API_URL}/api/users/search?query=${encodeURIComponent(searchTerm)}`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                if (response.ok) {
-                    const result = await response.json();
-                    console.log('✅ Gift Railway search result:', result);
-                    
-                    let filteredUsers = [];
-                    if (result.success && result.users && Array.isArray(result.users)) {
-                        filteredUsers = result.users.map(user => user.username);
-                        console.log('👥 Gift Found Railway users:', filteredUsers);
-                    }
-                    
-                    if (filteredUsers.length > 0) {
-                        recipientList.innerHTML = '';
-                        
-                        for (const username of filteredUsers) {
-                            await createGiftRecipientCard(username);
-                        }
-                        
-                        recipientResults.style.display = 'block';
-                    } else {
-                        recipientList.innerHTML = `
-                            <div style="text-align: center; color: #666; padding: 20px;">
-                                <div>No registered users found matching "${searchTerm}"</div>
-                                <div style="font-size: 10px; margin-top: 8px;">
-                                    Only registered SkyParty users can receive gifts
-                                </div>
-                            </div>
-                        `;
-                        recipientResults.style.display = 'block';
-                    }
-                } else {
-                    console.error('❌ Gift Railway search failed:', response.status);
-                    recipientList.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">Search failed. Please try again.</div>';
-                    recipientResults.style.display = 'block';
-                }
-            } catch (error) {
-                console.error('❌ Gift search error:', error);
-                recipientList.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">Search failed. Please try again.</div>';
-                recipientResults.style.display = 'block';
-            }
-        }
             
             if (searchTerm === '') {
                 recipientResults.style.display = 'none';
@@ -6406,51 +6253,11 @@
             document.getElementById('giftRecipientSearch').value = '';
         }
 
-        async function createGiftRecipientCard(username) {
-            const recipientList = document.getElementById('giftRecipientList');
-            
-            const card = document.createElement('div');
-            card.className = 'wallet-panel';
-            card.style.cursor = 'pointer';
-            card.style.padding = '12px';
-            card.style.textAlign = 'center';
-            
-            // Get user avatar
-            const userAvatar = await getUserAvatar(username);
-            
-            card.innerHTML = `
-                <div style="font-size: 24px; margin-bottom: 8px;">${userAvatar}</div>
-                <div style="font-weight: bold; color: #1f4e79; font-size: 12px;">${username}</div>
-                <div style="font-size: 10px; color: #666;">Click to select</div>
-            `;
-            
-            card.addEventListener('click', () => selectGiftRecipient(username));
-            
-            recipientList.appendChild(card);
-        }
         function clearGiftRecipientSearch() {
             document.getElementById('giftRecipientSearch').value = '';
             document.getElementById('giftRecipientResults').style.display = 'none';
         }
 
-        async function selectGiftRecipient(username) {
-            selectedGiftRecipient = username;
-            
-            // Get user avatar
-            const userAvatar = await getUserAvatar(username);
-            
-            // Update selected recipient display
-            document.getElementById('giftSelectedRecipientAvatar').textContent = userAvatar;
-            document.getElementById('giftSelectedRecipientName').textContent = username;
-            document.getElementById('giftSelectedRecipient').style.display = 'block';
-            
-            // Hide search results
-            document.getElementById('giftRecipientResults').style.display = 'none';
-            document.getElementById('giftRecipientSearch').value = '';
-            
-            // Show send button
-            document.getElementById('sendGiftBtn').style.display = 'inline-block';
-        }
         function sendGiftToRecipient() {
             if (!selectedGiftRecipient || !window.giftCharacterData) return;
             
