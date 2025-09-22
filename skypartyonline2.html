@@ -6333,6 +6333,15 @@
                 const testResponse = await fetch(`${RAILWAY_API_URL}/api/health`);
                 console.log('🔍 Health check status:', testResponse.status);
                 
+                // Test if gift endpoint exists
+                console.log('🔍 Testing gift endpoint...');
+                const giftTestResponse = await fetch(`${RAILWAY_API_URL}/api/gifts/send`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ test: true })
+                });
+                console.log('🔍 Gift endpoint status:', giftTestResponse.status);
+                
                 if (!testResponse.ok) {
                     throw new Error('Railway API is not available');
                 }
