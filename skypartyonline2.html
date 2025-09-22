@@ -6670,13 +6670,18 @@
             currentCharacterForGift = characterName;
             console.log('✅ showSimpleGiftPopup: Set currentCharacterForGift to:', currentCharacterForGift);
             console.log('✅ Character details:', character.name, character.icon);
+            
+            // Ensure we have the correct character data
+            const displayIcon = character.icon || '🎁';
+            const displayName = character.name || characterName;
+            console.log('✅ Display character:', displayIcon, displayName);
 
             // Create popup HTML
             const popupHTML = `
                 <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center;">
                     <div style="background: white; border: 2px solid #ff6b6b; border-radius: 8px; padding: 20px; min-width: 400px; max-width: 500px;">
                         <h3 style="color: #ff6b6b; margin: 0 0 16px 0; display: flex; align-items: center; gap: 8px;">
-                            🎁 Send Gift: ${character.icon} ${character.name}
+                            🎁 Send Gift: ${displayIcon} ${displayName}
                         </h3>
                         
                         <div style="margin-bottom: 16px;">
