@@ -1706,12 +1706,126 @@
                     <div class="modal-buttons">
                         <button class="xp-button" onclick="closeCharacterDetailsModal()">Cancel</button>
                         <button class="xp-button" id="characterSelectBtn">Select</button>
+                        <button class="xp-button primary" id="characterGiftBtn">Gift</button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Gift Sending Modal -->
+    <div class="modal-overlay" id="giftSendingModal">
+        <div class="modal-window" style="max-width: 500px;">
+            <div class="modal-title-bar">
+                <div class="modal-title-bar-icon">🎁</div>
+                <div class="modal-title-bar-text">Send Gift</div>
+                <div class="modal-window-controls">
+                    <div class="modal-window-control" onclick="closeGiftSendingModal()">×</div>
+                </div>
+            </div>
+            
+            <div class="modal-content">
+                <h3 style="color: #1f4e79; margin-bottom: 16px;">Send this to:</h3>
+                
+                <!-- Gift Item Display -->
+                <div class="wallet-panel" style="margin-bottom: 16px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div id="giftItemIcon" style="font-size: 32px;">🎁</div>
+                        <div>
+                            <div id="giftItemName" style="font-weight: bold; color: #1f4e79; font-size: 14px;">Character Name</div>
+                            <div style="font-size: 10px; color: #666;">Ready to send</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recipient Search -->
+                <div class="wallet-panel" style="margin-bottom: 16px;">
+                    <h4 style="color: #1f4e79; margin-bottom: 12px;">Search Recipient</h4>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="text" class="form-input" id="giftRecipientSearch" placeholder="Search for username..." style="flex: 1;" oninput="searchGiftRecipients()">
+                        <button class="xp-button" onclick="clearGiftRecipientSearch()">Clear</button>
+                    </div>
+                    
+                    <!-- Search Results -->
+                    <div id="giftRecipientResults" style="margin-top: 12px; display: none;">
+                        <div id="giftRecipientList" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px;">
+                            <!-- Recipient results will be populated here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Selected Recipient -->
+                <div id="giftSelectedRecipient" class="wallet-panel" style="margin-bottom: 16px; display: none;">
+                    <h4 style="color: #1f4e79; margin-bottom: 8px;">Selected Recipient</h4>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span id="giftSelectedRecipientAvatar" style="font-size: 24px;">👤</span>
+                        <div>
+                            <div id="giftSelectedRecipientName" style="font-weight: bold; color: #1f4e79;">Username</div>
+                            <div style="font-size: 10px; color: #666;">Ready to receive gift</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Gift Message -->
+                <div class="wallet-panel" style="margin-bottom: 16px;">
+                    <h4 style="color: #1f4e79; margin-bottom: 8px;">Gift Message (Optional)</h4>
+                    <textarea class="form-input" id="giftMessage" placeholder="Add a personal message..." rows="3" style="resize: vertical;"></textarea>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="modal-buttons">
+                    <button class="xp-button" onclick="closeGiftSendingModal()">Cancel</button>
+                    <button class="xp-button primary" id="sendGiftBtn" onclick="sendGiftToRecipient()" style="display: none;">Send Gift</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gift Acceptance Modal -->
+    <div class="modal-overlay" id="giftAcceptanceModal">
+        <div class="modal-window" style="max-width: 500px;">
+            <div class="modal-title-bar">
+                <div class="modal-title-bar-icon">🎁</div>
+                <div class="modal-title-bar-text">Gift Received</div>
+                <div class="modal-window-controls">
+                    <div class="modal-window-control" onclick="closeGiftAcceptanceModal()">×</div>
+                </div>
+            </div>
+            
+            <div class="modal-content">
+                <h3 style="color: #1f4e79; margin-bottom: 16px;">You received a gift!</h3>
+                
+                <!-- Gift Details -->
+                <div class="wallet-panel" style="margin-bottom: 16px;">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div id="giftAcceptanceIcon" style="font-size: 48px;">🎁</div>
+                        <div>
+                            <div id="giftAcceptanceFrom" style="font-weight: bold; color: #1f4e79; font-size: 14px; margin-bottom: 4px;">From: Username</div>
+                            <div id="giftAcceptanceItem" style="font-size: 12px; color: #666; margin-bottom: 4px;">Character Name</div>
+                            <div id="giftAcceptanceMessage" style="font-size: 11px; color: #888; font-style: italic;"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Gift Description -->
+                <div class="wallet-panel" style="margin-bottom: 16px;">
+                    <h4 style="color: #1f4e79; margin-bottom: 8px;">Gift Details</h4>
+                    <div id="giftAcceptanceDescription" style="font-size: 11px; line-height: 1.4; margin-bottom: 8px;"></div>
+                    <div style="font-size: 10px; color: #666;">
+                        <div>• Accept: Add to your inventory</div>
+                        <div>• Reject: Return to sender</div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="modal-buttons">
+                    <button class="xp-button" onclick="closeGiftAcceptanceModal()">Cancel</button>
+                    <button class="xp-button" onclick="rejectGiftFromModal()" style="background: #ff4444; color: white;">Reject</button>
+                    <button class="xp-button primary" onclick="acceptGiftFromModal()">Accept</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- User Profile Modal -->
     <div class="modal-overlay" id="userProfileModal">
@@ -3650,8 +3764,9 @@
             
             // Update action buttons
             const selectBtn = document.getElementById('characterSelectBtn');
+            const giftBtn = document.getElementById('characterGiftBtn');
             
-            if (!selectBtn) {
+            if (!selectBtn || !giftBtn) {
                 console.error('Character modal button not found');
                 return;
             }
@@ -3662,12 +3777,26 @@
                     closeCharacterDetailsModal();
                     showSection('login');
                 };
+                giftBtn.style.display = 'none';
             } else if (character.owned) {
                 selectBtn.textContent = 'Select';
                 selectBtn.onclick = () => selectCharacter(characterName).catch(console.error);
+                
+                // Show gift button only if user has the character in inventory
+                const characterQuantity = inventoryItems.filter(item => 
+                    item.type === 'character' && item.name === character.name
+                ).length;
+                
+                if (characterQuantity > 0 && characterName !== 'kitty') {
+                giftBtn.style.display = 'inline-block';
+                    giftBtn.onclick = () => giftCharacter(characterName);
+                } else {
+                    giftBtn.style.display = 'none';
+                }
             } else {
                 selectBtn.textContent = `Buy (${character.price} GC)`;
                 selectBtn.onclick = () => purchaseCharacter(characterName);
+                giftBtn.style.display = 'none';
             }
 
             // Show the modal
@@ -5588,19 +5717,59 @@
         // Mailbox System
         let mailboxItems = [];
 
-        function loadMailbox() {
-            if (!currentUser) return;
+        async function loadMailbox() {
+            if (!currentUser || !currentUserId) return;
 
-            const mailboxData = localStorage.getItem(`mailbox_${currentUser}`);
-            if (mailboxData) {
-                try {
-                    mailboxItems = JSON.parse(mailboxData);
-                } catch (error) {
-                    console.error('Error parsing mailbox data:', error);
+            console.log('📮 Loading mailbox for user ID:', currentUserId);
+
+            // Try Railway API first
+            try {
+                const response = await fetch(`${RAILWAY_API_URL}/api/user/${currentUserId}/gifts`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('✅ Mailbox loaded from Railway:', result);
+                    
+                    if (result.success && result.gifts) {
+                        mailboxItems = result.gifts;
+                        console.log('📬 Loaded gifts from Railway:', mailboxItems.length);
+                    } else {
+                        mailboxItems = [];
+                    }
+                } else {
+                    console.log('⚠️ Railway mailbox failed, using local storage');
+                    // Fallback to local storage
+                    const mailboxData = localStorage.getItem(`mailbox_${currentUser}`);
+                    if (mailboxData) {
+                        try {
+                            mailboxItems = JSON.parse(mailboxData);
+                        } catch (error) {
+                            console.error('Error parsing mailbox data:', error);
+                            mailboxItems = [];
+                        }
+                    } else {
+                        mailboxItems = [];
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Failed to load mailbox from Railway', error);
+                // Fallback to local storage
+                const mailboxData = localStorage.getItem(`mailbox_${currentUser}`);
+                if (mailboxData) {
+                    try {
+                        mailboxItems = JSON.parse(mailboxData);
+                    } catch (error) {
+                        console.error('Error parsing mailbox data:', error);
+                        mailboxItems = [];
+                    }
+                } else {
                     mailboxItems = [];
                 }
-            } else {
-                mailboxItems = [];
             }
 
             updateMailboxUI();
@@ -5634,7 +5803,7 @@
             updateMailboxNotificationDot();
         }
 
-        function updateMailboxUI() {
+        async function updateMailboxUI() {
             const mailboxContainer = document.getElementById('mailboxItems');
             const unreadCount = document.getElementById('unreadMailCount');
             const totalCount = document.getElementById('totalMailCount');
@@ -5660,14 +5829,14 @@
                 `;
             } else {
                 mailboxContainer.innerHTML = '';
-                mailboxItems.forEach(item => {
-                    const mailElement = createMailItemElement(item);
+                for (const item of mailboxItems) {
+                    const mailElement = await createMailItemElement(item);
                     mailboxContainer.appendChild(mailElement);
-                });
+                }
             }
         }
 
-        function createMailItemElement(item) {
+        async function createMailItemElement(item) {
             const div = document.createElement('div');
             div.className = 'mail-item';
             div.style.cssText = `
@@ -5681,19 +5850,19 @@
                 position: relative;
             `;
 
-            const itemIcon = getItemIcon(item.itemType);
-            const itemName = getItemName(item.itemType, item.itemData);
-            const senderAvatar = getUserAvatar(item.sender);
+            const itemIcon = getItemIcon(item.item_type);
+            const itemName = getItemName(item.item_type, item.item_data);
+            const senderAvatar = await getUserAvatar(item.sender_username);
 
             div.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 12px;">
                     <span style="font-size: 20px;">${senderAvatar}</span>
                     <div style="flex: 1;">
                         <div style="font-weight: bold; color: #1f4e79; font-size: 11px; margin-bottom: 2px;">
-                            ${item.sender} sent you ${itemName}
+                            ${item.sender_username} sent you ${itemName}
                         </div>
                         <div style="font-size: 10px; color: #666; margin-bottom: 4px;">
-                            ${new Date(item.timestamp).toLocaleString()}
+                            ${new Date(item.created_at).toLocaleString()}
                         </div>
                         ${item.message ? `<div style="font-size: 10px; color: #333; font-style: italic;">"${item.message}"</div>` : ''}
                     </div>
@@ -5733,9 +5902,9 @@
             updateMailboxNotificationDot();
 
             // Show item details and claim option
-            if (item.itemType === 'character' && !item.claimed) {
+            if (item.item_type === 'character' && item.status === 'pending') {
                 showCharacterGiftModal(item);
-            } else if (item.itemType === 'credits' && !item.claimed) {
+            } else if (item.item_type === 'credits' && item.status === 'pending') {
                 showCreditsGiftModal(item);
             } else {
                 showMessageGiftModal(item);
@@ -6354,6 +6523,430 @@
                     return originalPrompt(message, defaultValue);
                 }
             };
+        }
+
+        // Gift System JavaScript Functions (Fresh Implementation)
+        let selectedGiftRecipient = null;
+        let currentGiftItem = null;
+
+        function giftCharacter(characterName) {
+            const character = characterDatabase.find(char => char.id === characterName);
+            if (!character) return;
+            
+            // Prevent gifting the default kitty character
+            if (characterName === 'kitty') {
+                alert('❌ You cannot gift the default Kitty character.');
+                return;
+            }
+            
+            // Check if current user has this character
+            const characterQuantity = inventoryItems.filter(item => 
+                item.type === 'character' && item.name === character.name
+            ).length;
+            
+            if (characterQuantity === 0) {
+                alert('❌ You don\'t have this character in your inventory to gift.');
+                return;
+            }
+            
+            // Store the character to gift
+            window.giftCharacterData = {
+                name: character.name,
+                icon: character.icon,
+                description: character.description,
+                price: character.price,
+                id: characterName
+            };
+            
+            // Close character details modal and open gift sending modal
+            closeCharacterDetailsModal();
+            openGiftSendingModal();
+        }
+
+        function openGiftSendingModal() {
+            if (!window.giftCharacterData) return;
+            
+            // Update gift item display
+            document.getElementById('giftItemIcon').textContent = window.giftCharacterData.icon;
+            document.getElementById('giftItemName').textContent = window.giftCharacterData.name;
+            
+            // Clear previous selections
+            clearGiftRecipientSearch();
+            selectedGiftRecipient = null;
+            document.getElementById('giftSelectedRecipient').style.display = 'none';
+            document.getElementById('sendGiftBtn').style.display = 'none';
+            document.getElementById('giftMessage').value = '';
+            
+            // Show modal
+            document.getElementById('giftSendingModal').style.display = 'block';
+        }
+
+        function closeGiftSendingModal() {
+            document.getElementById('giftSendingModal').style.display = 'none';
+            clearGiftRecipientSearch();
+            selectedGiftRecipient = null;
+            window.giftCharacterData = null;
+        }
+
+        async function searchGiftRecipients() {
+            const searchTerm = document.getElementById('giftRecipientSearch').value.toLowerCase().trim();
+            const recipientResults = document.getElementById('giftRecipientResults');
+            const recipientList = document.getElementById('giftRecipientList');
+            
+            if (searchTerm === '') {
+                recipientResults.style.display = 'none';
+                return;
+            }
+            
+            console.log('🎁 Gift Search: Searching for users:', searchTerm);
+            
+            // Try Railway API first
+            try {
+                const response = await fetch(`${RAILWAY_API_URL}/api/users/search?query=${encodeURIComponent(searchTerm)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('✅ Gift Railway search result:', result);
+                    
+                    let filteredUsers = [];
+                    if (result.success && result.users && Array.isArray(result.users)) {
+                        filteredUsers = result.users.map(user => user.username);
+                        console.log('👥 Gift Found Railway users:', filteredUsers);
+                    }
+                    
+                    if (filteredUsers.length > 0) {
+                        recipientList.innerHTML = '';
+                        for (const username of filteredUsers) {
+                            const recipientCard = await createGiftRecipientCard(username);
+                            recipientList.appendChild(recipientCard);
+                        }
+                        recipientResults.style.display = 'block';
+                        console.log('✅ Gift Showing Railway users in search results');
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.log('⚠️ Gift Railway search failed:', error.message);
+            }
+            
+            // No users found
+            recipientList.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 20px; color: #666;">
+                    <div style="font-size: 24px; margin-bottom: 8px;">👤</div>
+                    <div>No registered users found matching "${searchTerm}"</div>
+                    <div style="font-size: 12px; margin-top: 8px; color: #999;">
+                        Only registered SkyParty users can receive gifts
+                    </div>
+                </div>
+            `;
+            recipientResults.style.display = 'block';
+        }
+
+        async function createGiftRecipientCard(username) {
+            const card = document.createElement('div');
+            card.className = 'user-card';
+            card.style.cssText = `
+                background: white;
+                border: 1px outset #ece9d8;
+                padding: 8px;
+                text-align: center;
+                cursor: pointer;
+                transition: all 0.1s ease;
+                border-radius: 3px;
+                min-height: 60px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            `;
+
+            const userAvatar = await getUserAvatar(username);
+
+            card.innerHTML = `
+                <div style="font-size: 24px; margin-bottom: 4px;">${userAvatar}</div>
+                <div style="font-weight: bold; color: #1f4e79; font-size: 11px;">${username}</div>
+            `;
+
+            card.onclick = () => selectGiftRecipient(username);
+            return card;
+        }
+
+        async function selectGiftRecipient(username) {
+            selectedGiftRecipient = username;
+            
+            // Update selected recipient display
+            document.getElementById('giftSelectedRecipientAvatar').textContent = await getUserAvatar(username);
+            document.getElementById('giftSelectedRecipientName').textContent = username;
+            document.getElementById('giftSelectedRecipient').style.display = 'block';
+            
+            // Show Send Gift button
+            document.getElementById('sendGiftBtn').style.display = 'inline-block';
+            
+            // Hide search results
+            document.getElementById('giftRecipientResults').style.display = 'none';
+            document.getElementById('giftRecipientSearch').value = '';
+        }
+
+        function clearGiftRecipientSearch() {
+            document.getElementById('giftRecipientSearch').value = '';
+            document.getElementById('giftRecipientResults').style.display = 'none';
+        }
+
+        async function sendGiftToRecipient() {
+            if (!selectedGiftRecipient || !window.giftCharacterData) return;
+            
+            let recipientUser;
+            
+            // Check if recipient exists in Railway database
+            try {
+                const response = await fetch(`${RAILWAY_API_URL}/api/users/search?query=${encodeURIComponent(selectedGiftRecipient)}`);
+                if (!response.ok) {
+                    alert('❌ User not found. Please check the username and try again.');
+                    return;
+                }
+                
+                const result = await response.json();
+                if (!result.success || !result.users || result.users.length === 0) {
+                    alert('❌ User not found. Please check the username and try again.');
+                    return;
+                }
+                
+                recipientUser = result.users.find(user => user.username === selectedGiftRecipient);
+                if (!recipientUser) {
+                    alert('❌ User not found. Please check the username and try again.');
+                    return;
+                }
+                
+                console.log('✅ Found recipient user:', recipientUser);
+            } catch (error) {
+                console.error('❌ Error checking recipient:', error);
+                alert('❌ Error checking recipient. Please try again.');
+                return;
+            }
+            
+            // Remove one character from inventory
+            console.log('Looking for character to remove:', window.giftCharacterData.name);
+            console.log('Current inventory items:', inventoryItems);
+            
+            const characterIndex = inventoryItems.findIndex(item => 
+                item.type === 'character' && item.name === window.giftCharacterData.name
+            );
+            
+            console.log('Found character at index:', characterIndex);
+            
+            if (characterIndex !== -1) {
+                console.log('Removing character:', inventoryItems[characterIndex]);
+                inventoryItems.splice(characterIndex, 1);
+                saveInventory();
+                
+                // Update filtered items to reflect the removal
+                filteredInventoryItems = [...inventoryItems];
+                
+                updateInventoryUI();
+                console.log('Character removed successfully');
+            } else {
+                console.log('Character not found in inventory!');
+                alert('❌ Error: Character not found in inventory. Please try again.');
+            }
+            
+            // Send gift to recipient via Railway API
+            const giftMessage = document.getElementById('giftMessage').value || '';
+            
+            try {
+                const giftData = {
+                    senderId: currentUserId,
+                    recipientId: recipientUser.id,
+                    itemType: 'character',
+                    itemData: {
+                        name: window.giftCharacterData.name,
+                        icon: window.giftCharacterData.icon,
+                        description: window.giftCharacterData.description,
+                        price: window.giftCharacterData.price
+                    },
+                    message: giftMessage
+                };
+                
+                console.log('🎁 Sending gift data to Railway:', giftData);
+                
+                const sendResponse = await fetch(`${RAILWAY_API_URL}/api/gifts/send`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(giftData)
+                });
+                
+                if (sendResponse.ok) {
+                    const sendResult = await sendResponse.json();
+                    console.log('✅ Gift sent successfully:', sendResult);
+                    
+                    alert(`✅ Gift Sent!\n\n${window.giftCharacterData.name} has been sent to ${selectedGiftRecipient}!\n\nThey will receive it in their mailbox.`);
+                } else {
+                    const errorText = await sendResponse.text();
+                    console.error('❌ Failed to send gift:', errorText);
+                    alert('❌ Failed to send gift. Please try again.');
+                    return;
+                }
+            } catch (error) {
+                console.error('❌ Error sending gift:', error);
+                alert('❌ Error sending gift. Please try again.');
+                return;
+            }
+            
+            // Close modal
+            closeGiftSendingModal();
+        }
+
+        // Gift Acceptance Modal Functions
+        function closeGiftAcceptanceModal() {
+            document.getElementById('giftAcceptanceModal').style.display = 'none';
+            window.currentGiftItem = null;
+        }
+
+        function acceptGiftFromModal() {
+            if (window.currentGiftItem) {
+                acceptCharacterGift(window.currentGiftItem);
+                closeGiftAcceptanceModal();
+            }
+        }
+
+        function rejectGiftFromModal() {
+            if (window.currentGiftItem) {
+                rejectCharacterGift(window.currentGiftItem);
+                closeGiftAcceptanceModal();
+            }
+        }
+
+        function showCharacterGiftModal(item) {
+            const character = item.item_data;
+            
+            // Store the current gift item for the modal
+            window.currentGiftItem = item;
+            
+            // Update modal content
+            document.getElementById('giftAcceptanceIcon').textContent = character.icon;
+            document.getElementById('giftAcceptanceFrom').textContent = `From: ${item.sender_username}`;
+            document.getElementById('giftAcceptanceItem').textContent = character.name;
+            document.getElementById('giftAcceptanceDescription').textContent = character.description;
+            
+            // Show message if available
+            const messageElement = document.getElementById('giftAcceptanceMessage');
+            if (item.message) {
+                messageElement.textContent = `"${item.message}"`;
+                messageElement.style.display = 'block';
+            } else {
+                messageElement.style.display = 'none';
+            }
+            
+            // Show the modal
+            document.getElementById('giftAcceptanceModal').style.display = 'block';
+        }
+
+        async function acceptCharacterGift(item) {
+            const character = item.item_data;
+            
+            try {
+                // Claim the gift via Railway API
+                const response = await fetch(`${RAILWAY_API_URL}/api/gifts/${item.id}/claim`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        userId: currentUserId
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('✅ Gift claimed successfully:', result);
+                    
+                    // Find the character ID from the character database
+                    const characterFromDB = characterDatabase.find(char => char.name === character.name);
+                    const characterId = characterFromDB ? characterFromDB.id : character.name.toLowerCase().replace(/\s+/g, '');
+                    
+                    // Add character to owned characters
+                    if (!ownedCharacters.includes(characterId)) {
+                        ownedCharacters.push(characterId);
+                        await saveCharacterData();
+                        updateCharacterCardStatuses();
+                    }
+                    
+                    // Add character to inventory
+                    const newInventoryItem = {
+                        id: `character_${characterId}_${Date.now()}`,
+                        type: 'character',
+                        name: character.name,
+                        icon: character.icon,
+                        description: character.description,
+                        price: character.price,
+                        acquiredDate: new Date().toISOString(),
+                        source: 'gift',
+                        quantity: 1
+                    };
+                    
+                    inventoryItems.push(newInventoryItem);
+                    saveInventory();
+                    
+                    // Update filtered items to include the new item
+                    filteredInventoryItems = [...inventoryItems];
+                    
+                    // Update inventory UI immediately
+                    updateInventoryUI();
+                    
+                    // Reload mailbox to reflect the claimed status
+                    await loadMailbox();
+                    
+                    alert(`✅ Character "${character.name}" has been added to your collection!`);
+                } else {
+                    const errorText = await response.text();
+                    console.error('❌ Failed to claim gift:', errorText);
+                    alert('❌ Failed to claim gift. Please try again.');
+                }
+            } catch (error) {
+                console.error('❌ Error claiming gift:', error);
+                alert('❌ Error claiming gift. Please try again.');
+            }
+        }
+
+        async function rejectCharacterGift(item) {
+            const character = item.item_data;
+            const sender = item.sender_username;
+            
+            try {
+                // Reject the gift via Railway API
+                const response = await fetch(`${RAILWAY_API_URL}/api/gifts/${item.id}/reject`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        userId: currentUserId
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('✅ Gift rejected successfully:', result);
+                    
+                    // Reload mailbox to reflect the rejected status
+                    await loadMailbox();
+                    
+                    alert(`❌ Gift rejected! The character has been returned to ${sender}.`);
+                } else {
+                    const errorText = await response.text();
+                    console.error('❌ Failed to reject gift:', errorText);
+                    alert('❌ Failed to reject gift. Please try again.');
+                }
+            } catch (error) {
+                console.error('❌ Error rejecting gift:', error);
+                alert('❌ Error rejecting gift. Please try again.');
+            }
         }
     </script>
 </body>
