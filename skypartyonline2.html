@@ -6226,10 +6226,10 @@
                     
                     if (filteredUsers.length > 0) {
                         recipientList.innerHTML = '';
-                        filteredUsers.forEach(username => {
-                            const recipientCard = createGiftRecipientCard(username);
+                        for (const username of filteredUsers) {
+                            const recipientCard = await createGiftRecipientCard(username);
                             recipientList.appendChild(recipientCard);
-                        });
+                        }
                         recipientResults.style.display = 'block';
                         console.log('✅ Gift Showing Railway users in search results');
                         return;
@@ -6252,7 +6252,7 @@
             recipientResults.style.display = 'block';
         }
 
-        function createGiftRecipientCard(username) {
+        async function createGiftRecipientCard(username) {
             const card = document.createElement('div');
             card.className = 'user-card';
             card.style.cssText = `
@@ -6270,7 +6270,7 @@
                 justify-content: center;
             `;
 
-            const userAvatar = getUserAvatar(username);
+            const userAvatar = await getUserAvatar(username);
 
             card.innerHTML = `
                 <div style="font-size: 24px; margin-bottom: 4px;">${userAvatar}</div>
@@ -6281,11 +6281,11 @@
             return card;
         }
 
-        function selectGiftRecipient(username) {
+        async function selectGiftRecipient(username) {
             selectedGiftRecipient = username;
             
             // Update selected recipient display
-            document.getElementById('giftSelectedRecipientAvatar').textContent = getUserAvatar(username);
+            document.getElementById('giftSelectedRecipientAvatar').textContent = await getUserAvatar(username);
             document.getElementById('giftSelectedRecipientName').textContent = username;
             document.getElementById('giftSelectedRecipient').style.display = 'block';
             
@@ -6302,13 +6302,33 @@
             document.getElementById('giftRecipientResults').style.display = 'none';
         }
 
-        function sendGiftToRecipient() {
+        async function sendGiftToRecipient() {
             if (!selectedGiftRecipient || !window.giftCharacterData) return;
             
-            // Check if recipient exists
-            const mappings = getUsernameMappings();
-            if (!mappings[selectedGiftRecipient]) {
-                alert('❌ User not found. Please check the username and try again.');
+            // Check if recipient exists in Railway database
+            try {
+                const response = await fetch(`${RAILWAY_API_URL}/api/users/search?query=${encodeURIComponent(selectedGiftRecipient)}`);
+                if (!response.ok) {
+                    alert('❌ User not found. Please check the username and try again.');
+                    return;
+                }
+                
+                const result = await response.json();
+                if (!result.success || !result.users || result.users.length === 0) {
+                    alert('❌ User not found. Please check the username and try again.');
+                    return;
+                }
+                
+                const recipientUser = result.users.find(user => user.username === selectedGiftRecipient);
+                if (!recipientUser) {
+                    alert('❌ User not found. Please check the username and try again.');
+                    return;
+                }
+                
+                console.log('✅ Found recipient user:', recipientUser);
+            } catch (error) {
+                console.error('❌ Error checking recipient:', error);
+                alert('❌ Error checking recipient. Please try again.');
                 return;
             }
             
@@ -6337,42 +6357,49 @@
                 alert('❌ Error: Character not found in inventory. Please try again.');
             }
             
-            // Send gift to recipient
-            const recipientEmail = mappings[selectedGiftRecipient];
+            // Send gift to recipient via Railway API
             const giftMessage = document.getElementById('giftMessage').value || '';
             
-            // Add gift to recipient's mailbox
-            const recipientMailboxData = localStorage.getItem(`mailbox_${recipientEmail}`);
-            let recipientMailbox = [];
-            if (recipientMailboxData) {
-                try {
-                    recipientMailbox = JSON.parse(recipientMailboxData);
-                } catch (error) {
-                    recipientMailbox = [];
+            try {
+                const giftData = {
+                    senderId: currentUserId,
+                    recipientId: recipientUser.id,
+                    itemType: 'character',
+                    itemData: {
+                        name: window.giftCharacterData.name,
+                        icon: window.giftCharacterData.icon,
+                        description: window.giftCharacterData.description,
+                        price: window.giftCharacterData.price
+                    },
+                    message: giftMessage
+                };
+                
+                console.log('🎁 Sending gift data to Railway:', giftData);
+                
+                const sendResponse = await fetch(`${RAILWAY_API_URL}/api/gifts/send`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(giftData)
+                });
+                
+                if (sendResponse.ok) {
+                    const sendResult = await sendResponse.json();
+                    console.log('✅ Gift sent successfully:', sendResult);
+                    
+                    alert(`✅ Gift Sent!\n\n${window.giftCharacterData.name} has been sent to ${selectedGiftRecipient}!\n\nThey will receive it in their mailbox.`);
+                } else {
+                    const errorText = await sendResponse.text();
+                    console.error('❌ Failed to send gift:', errorText);
+                    alert('❌ Failed to send gift. Please try again.');
+                    return;
                 }
+            } catch (error) {
+                console.error('❌ Error sending gift:', error);
+                alert('❌ Error sending gift. Please try again.');
+                return;
             }
-            
-            const giftItem = {
-                id: `character_gift_${Date.now()}`,
-                sender: getCurrentUsername(),
-                recipient: selectedGiftRecipient,
-                itemType: 'character',
-                itemData: {
-                    name: window.giftCharacterData.name,
-                    icon: window.giftCharacterData.icon,
-                    description: window.giftCharacterData.description,
-                    price: window.giftCharacterData.price
-                },
-                message: giftMessage,
-                timestamp: new Date().toISOString(),
-                read: false,
-                claimed: false
-            };
-            
-            recipientMailbox.unshift(giftItem);
-            localStorage.setItem(`mailbox_${recipientEmail}`, JSON.stringify(recipientMailbox));
-            
-            alert(`✅ Gift Sent!\n\n${window.giftCharacterData.name} has been sent to ${selectedGiftRecipient}!\n\nThey will receive it in their mailbox.`);
             
             // Close modal
             closeGiftSendingModal();
