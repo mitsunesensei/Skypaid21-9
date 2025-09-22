@@ -1052,10 +1052,6 @@ async function createTables() {
                 icon VARCHAR(10) NOT NULL,
                 description TEXT,
                 price INTEGER DEFAULT 0,
-                rarity VARCHAR(20) DEFAULT 'common',
-                category VARCHAR(50) DEFAULT 'default',
-                unlock_level INTEGER DEFAULT 1,
-                is_active BOOLEAN DEFAULT TRUE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
@@ -1110,19 +1106,19 @@ async function createTables() {
             )
         `);
         await client.query(`
-            INSERT INTO characters (id, name, icon, description, price, rarity, category) VALUES
-            ('kitty', 'Kitty', '🐱', 'A cute and friendly kitty character. Perfect for beginners!', 0, 'common', 'starter'),
-            ('dragon', 'Dragon', '🐉', 'A powerful dragon with mystical abilities.', 500, 'rare', 'fantasy'),
-            ('robot', 'Robot', '🤖', 'An advanced AI robot companion.', 300, 'uncommon', 'tech'),
-            ('ninja', 'Ninja', '🥷', 'A stealthy ninja warrior.', 400, 'uncommon', 'warrior'),
-            ('wizard', 'Wizard', '🧙', 'A wise wizard with magical powers.', 600, 'rare', 'magic'),
-            ('pirate', 'Pirate', '🏴‍☠️', 'A swashbuckling pirate adventurer.', 350, 'uncommon', 'adventure'),
-            ('bear', 'Bear', '🐻', 'A strong and cuddly bear companion.', 250, 'common', 'animal'),
-            ('unicorn', 'Unicorn', '🦄', 'A magical unicorn with healing powers.', 800, 'epic', 'fantasy'),
-            ('rabbit', 'Rabbit', '🐰', 'A quick and agile rabbit friend.', 200, 'common', 'animal'),
-            ('fox', 'Fox', '🦊', 'A clever and cunning fox.', 300, 'uncommon', 'animal'),
-            ('owl', 'Owl', '🦉', 'A wise owl with night vision.', 400, 'uncommon', 'animal'),
-            ('wolf', 'Wolf', '🐺', 'A loyal wolf pack leader.', 450, 'uncommon', 'animal')
+            INSERT INTO characters (id, name, icon, description, price) VALUES
+            ('kitty', 'Kitty', '🐱', 'A cute and friendly kitty character. Perfect for beginners!', 0),
+            ('dragon', 'Dragon', '🐉', 'A powerful dragon with mystical abilities.', 500),
+            ('robot', 'Robot', '🤖', 'An advanced AI robot companion.', 300),
+            ('ninja', 'Ninja', '🥷', 'A stealthy ninja warrior.', 400),
+            ('wizard', 'Wizard', '🧙', 'A wise wizard with magical powers.', 600),
+            ('pirate', 'Pirate', '🏴‍☠️', 'A swashbuckling pirate adventurer.', 350),
+            ('bear', 'Bear', '🐻', 'A strong and cuddly bear companion.', 250),
+            ('unicorn', 'Unicorn', '🦄', 'A magical unicorn with healing powers.', 800),
+            ('rabbit', 'Rabbit', '🐰', 'A quick and agile rabbit friend.', 200),
+            ('fox', 'Fox', '🦊', 'A clever and cunning fox.', 300),
+            ('owl', 'Owl', '🦉', 'A wise owl with night vision.', 400),
+            ('wolf', 'Wolf', '🐺', 'A loyal wolf pack leader.', 450)
             ON CONFLICT (id) DO NOTHING
         `);
         
@@ -1138,9 +1134,8 @@ app.get('/api/characters', async (req, res) => {
     try {
         const client = await pool.connect();
         const result = await client.query(`
-            SELECT id, name, icon, description, price, rarity, category, unlock_level 
+            SELECT id, name, icon, description, price 
             FROM characters 
-            WHERE is_active = TRUE 
             ORDER BY price ASC, name ASC
         `);
         client.release();
