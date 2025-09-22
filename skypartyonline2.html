@@ -6540,6 +6540,23 @@
         let selectedGiftRecipient = null;
         let currentGiftItem = null;
         let currentCharacterForGift = null;
+        
+        // Find user by username
+        async function findUserByUsername(username) {
+            try {
+                const response = await fetch(`${RAILWAY_API_URL}/api/users/search?query=${encodeURIComponent(username)}`);
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success && result.users && result.users.length > 0) {
+                        return result.users.find(user => user.username === username);
+                    }
+                }
+                return null;
+            } catch (error) {
+                console.error('❌ Error finding user:', error);
+                return null;
+            }
+        }
 
         // Simple gift button handler
         function handleGiftButtonClick() {
@@ -6548,16 +6565,26 @@
             console.log('🎁 All characterDatabase:', characterDatabase);
             console.log('🎁 Owned characters:', ownedCharacters);
             
+            // Debug: Check if characterDatabase is loaded
+            if (!characterDatabase || characterDatabase.length === 0) {
+                console.error('❌ characterDatabase is not loaded!');
+                showGiftAlert('❌ Error: Character database not loaded. Please try again.', 'error');
+                return;
+            }
+            
             // Try to find the character from the modal context
             let characterToGift = currentCharacterForGift;
             
             // If no character is set, try to find it from the modal
             if (!characterToGift) {
                 console.log('🔍 Trying to find character from modal context...');
+                console.log('🔍 Owned characters available:', ownedCharacters);
                 
                 // Try to find character from owned characters (any non-kitty character)
                 for (const ownedChar of ownedCharacters) {
+                    console.log('🔍 Checking owned character:', ownedChar);
                     const char = characterDatabase.find(c => c.id === ownedChar);
+                    console.log('🔍 Found character in database:', char);
                     if (char && char.id !== 'kitty') {
                         characterToGift = ownedChar;
                         console.log('✅ Found character from owned list:', characterToGift);
@@ -6567,7 +6594,9 @@
                 
                 // If still no character, try to find from character database (any non-kitty)
                 if (!characterToGift) {
+                    console.log('🔍 No owned character found, trying database fallback...');
                     for (const char of characterDatabase) {
+                        console.log('🔍 Checking database character:', char.id, char.name);
                         if (char.id !== 'kitty') {
                             characterToGift = char.id;
                             console.log('✅ Using fallback character:', characterToGift);
@@ -6577,12 +6606,21 @@
                 }
             }
             
+            console.log('🎁 Final character to gift:', characterToGift);
+            
             if (characterToGift) {
-                console.log('✅ Using character for gift:', characterToGift);
-                showSimpleGiftPopup(characterToGift);
+                // Verify the character exists in the database
+                const character = characterDatabase.find(char => char.id === characterToGift);
+                if (character) {
+                    console.log('✅ Character found in database:', character.name);
+                    showSimpleGiftPopup(characterToGift);
+                } else {
+                    console.error('❌ Character not found in database:', characterToGift);
+                    showGiftAlert('❌ Error: Character not found in database!', 'error');
+                }
             } else {
                 console.error('❌ No character found for gifting');
-                alert('❌ Error: No character selected for gifting\n\nPlease make sure you own a character and try again.');
+                showGiftAlert('❌ Error: No character selected for gifting!\n\nPlease make sure you own a character and try again.', 'error');
             }
         }
 
@@ -6607,6 +6645,10 @@
                 alert('❌ Character not found');
                 return;
             }
+            
+            // Set the global character for gifting
+            currentCharacterForGift = characterName;
+            console.log('✅ showSimpleGiftPopup: Set currentCharacterForGift to:', currentCharacterForGift);
 
             // Create popup HTML
             const popupHTML = `
@@ -6751,12 +6793,44 @@
                 return;
             }
             
-            const character = characterDatabase.find(char => char.id === currentCharacterForGift);
-            const message = document.getElementById('simpleGiftMessage').value || '';
+            // Try to get character, with fallback from popup title
+            let characterToUse = currentCharacterForGift;
+            
+            if (!characterToUse) {
+                console.log('🔍 currentCharacterForGift is null, trying to extract from popup title...');
+                // Try to extract character from popup title
+                const popupTitle = document.querySelector('h3');
+                if (popupTitle) {
+                    const titleText = popupTitle.textContent;
+                    console.log('🔍 Popup title:', titleText);
+                    // Extract character name from title like "🎁 Send Gift: 🐉 Dragon"
+                    const match = titleText.match(/Send Gift: [^:]+ (.+)/);
+                    if (match) {
+                        const characterName = match[1];
+                        console.log('🔍 Extracted character name from title:', characterName);
+                        // Find character by name
+                        const foundChar = characterDatabase.find(char => char.name === characterName);
+                        if (foundChar) {
+                            characterToUse = foundChar.id;
+                            console.log('✅ Found character by name:', characterToUse);
+                        }
+                    }
+                }
+            }
+            
+            const character = characterDatabase.find(char => char.id === characterToUse);
+            
+            // Debug message input
+            const messageElement = document.getElementById('simpleGiftMessage');
+            console.log('🔍 Message element:', messageElement);
+            console.log('🔍 Message element value:', messageElement ? messageElement.value : 'ELEMENT NOT FOUND');
+            
+            const message = messageElement ? messageElement.value.trim() : '';
+            console.log('🔍 Final message:', message);
             
             // Check if character exists
             if (!character) {
-                console.error('❌ Character not found for gifting:', currentCharacterForGift);
+                console.error('❌ Character not found for gifting:', characterToUse);
                 showGiftAlert('❌ Error: Character not found for gifting!', 'error');
                 return;
             }
@@ -6767,13 +6841,68 @@
                 message: message
             });
             
-            // Close popup first
-            closeSimpleGiftPopup();
+            // Get current user ID
+            const currentUser = getCurrentUser();
+            if (!currentUser) {
+                showGiftAlert('❌ Error: You must be logged in to send gifts!', 'error');
+                return;
+            }
             
-            // Show success message after popup is closed
-            setTimeout(() => {
-                showGiftAlert(`✅ Gift Sent Successfully!\n\n${character.icon} ${character.name} has been sent to ${finalRecipient}!\n\nMessage: "${message}"`, 'success');
-            }, 100);
+            // Find recipient user ID
+            const recipientUser = await findUserByUsername(finalRecipient);
+            if (!recipientUser) {
+                showGiftAlert('❌ Error: Recipient user not found!', 'error');
+                return;
+            }
+            
+            console.log('🎁 Sending to Railway:', {
+                senderId: currentUser.id,
+                recipientId: recipientUser.id,
+                character: character.name
+            });
+            
+            // Send gift to Railway
+            try {
+                const response = await fetch(`${RAILWAY_API_URL}/api/gifts/send`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        senderId: currentUser.id,
+                        recipientId: recipientUser.id,
+                        itemType: 'character',
+                        itemData: {
+                            name: character.name,
+                            icon: character.icon,
+                            description: character.description,
+                            price: character.price
+                        },
+                        message: message
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('✅ Gift sent successfully:', result);
+                    
+                    // Close popup first
+                    closeSimpleGiftPopup();
+                    
+                    // Show success message after popup is closed
+                    setTimeout(() => {
+                        const messageText = message ? `"${message}"` : "No message";
+                        showGiftAlert(`✅ Gift Sent Successfully!\n\n${character.icon} ${character.name} has been sent to ${finalRecipient}!\n\nMessage: ${messageText}`, 'success');
+                    }, 100);
+                } else {
+                    const errorData = await response.json();
+                    console.error('❌ Failed to send gift:', errorData);
+                    showGiftAlert(`❌ Failed to send gift: ${errorData.error || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                console.error('❌ Error sending gift:', error);
+                showGiftAlert('❌ Error sending gift. Please try again.', 'error');
+            }
         }
 
         // Show gift alert (replaces the popup)
