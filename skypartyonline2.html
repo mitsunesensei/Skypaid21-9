@@ -3805,6 +3805,7 @@
                 if (characterName !== 'kitty') {
                     giftBtn.style.display = 'inline-block';
                     currentCharacterForGift = characterName; // Set the character for gifting
+                    giftBtn.onclick = () => handleGiftButtonClick(characterName); // Pass character name directly
                     console.log('✅ Gift button configured for:', characterName);
                     console.log('✅ currentCharacterForGift set to:', currentCharacterForGift);
                 } else {
@@ -3820,6 +3821,7 @@
                 if (ownedCharacters.includes(characterName) && characterName !== 'kitty') {
                     giftBtn.style.display = 'inline-block';
                     currentCharacterForGift = characterName; // Set the character for gifting
+                    giftBtn.onclick = () => handleGiftButtonClick(characterName); // Pass character name directly
                     console.log('✅ Gift button configured for owned character:', characterName);
                     console.log('✅ currentCharacterForGift set to:', currentCharacterForGift);
                 } else {
@@ -6591,8 +6593,9 @@
         }
 
         // Simple gift button handler
-        function handleGiftButtonClick() {
+        function handleGiftButtonClick(characterName = null) {
             console.log('🎁 Gift button clicked!');
+            console.log('🎁 Character name parameter:', characterName);
             console.log('🎁 Current character for gift:', currentCharacterForGift);
             console.log('🎁 All characterDatabase:', characterDatabase);
             console.log('🎁 Owned characters:', ownedCharacters);
@@ -6604,13 +6607,45 @@
                 return;
             }
             
-            // Use the character that was set when the modal was opened
-            const characterToGift = currentCharacterForGift;
+            // Use the character passed as parameter first, then fall back to the one set in modal
+            let characterToGift = characterName || currentCharacterForGift;
             
+            // If no character is selected, try to find the first giftable character from owned characters
             if (!characterToGift) {
-                console.error('❌ No character selected for gifting');
-                showGiftAlert('❌ Error: No character selected for gifting!\n\nPlease select a character first.', 'error');
-                return;
+                console.log('🔍 No character selected, looking for giftable characters...');
+                console.log('🔍 ownedCharacters array:', ownedCharacters);
+                console.log('🔍 ownedCharacters type:', typeof ownedCharacters);
+                console.log('🔍 ownedCharacters length:', ownedCharacters ? ownedCharacters.length : 'undefined');
+                
+                // First try to filter out kitty
+                let giftableCharacters = ownedCharacters.filter(char => char !== 'kitty');
+                console.log('🔍 giftableCharacters after filter:', giftableCharacters);
+                console.log('🔍 giftableCharacters length:', giftableCharacters.length);
+                
+                // If no giftable characters after filtering kitty, use all owned characters
+                if (giftableCharacters.length === 0) {
+                    console.log('🔍 No non-kitty characters found, using all owned characters');
+                    giftableCharacters = ownedCharacters;
+                    console.log('🔍 Using all owned characters:', giftableCharacters);
+                }
+                
+                if (giftableCharacters.length > 0) {
+                    characterToGift = giftableCharacters[0];
+                    console.log('🎁 Using first giftable character:', characterToGift);
+                } else {
+                    console.error('❌ No giftable characters found');
+                    console.error('❌ Debug info - ownedCharacters:', ownedCharacters);
+                    console.error('❌ Debug info - characterDatabase:', characterDatabase);
+                    
+                    // Let's also check if we can find any owned characters in the database
+                    const ownedInDatabase = characterDatabase.filter(char => ownedCharacters.includes(char.id));
+                    console.error('❌ Characters owned in database:', ownedInDatabase);
+                    
+                    showGiftAlert('❌ Error: No giftable characters available!\n\nYou need to own characters to send gifts.\n\nDebug: ownedCharacters = ' + JSON.stringify(ownedCharacters), 'error');
+                    return;
+                }
+            } else {
+                console.log('🎁 Using character from modal selection:', characterToGift);
             }
             
             console.log('🎁 Using character for gift:', characterToGift);
